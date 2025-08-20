@@ -1,7 +1,7 @@
-from code.WeCLIPPlus.scripts import dist_clip_voc
-from code.WeCLIPPlus.move_data import dataset_initializer, moveImageSets, moveImgs, convert_to_jpg, moveBack
-from code.WeCLIPPlus.clip import clip_text
-from code.WeCLIPPlus import test_msc_flip_voc
+from scripts import dist_clip_voc
+from move_data import dataset_initializer, moveImageSets, moveImgs, convert_to_jpg, moveBack
+from clip import clip_text
+import test_msc_flip_voc
 import argparse
 
 
