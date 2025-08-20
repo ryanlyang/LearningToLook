@@ -1,0 +1,18 @@
+results/
+
+.idea/
+
+.ipynb_checkpoints/
+
+image_sets/
+
+VOCdevkit/VOC2012/JPEGImages/
+
+VOCdevkit/VOC2012/ImgStore/
+
+pretrained/ViT-B-16.pt
+
+#I like that
+
+
+work_dir_voc/
