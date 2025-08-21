@@ -84,8 +84,7 @@ The project runs in three main steps:
     ```sh
     python scripts/run_guided_CNN.py data/saved/ColorMNIST_images/digit code/WeCLIPPlus/results/val/prediction_cmap/
     ```
-    The first argument is the path to the dataset, and the second is the path to the generated pseudo-masks (`prediction_cmap` folder). The script will train the model and evaluate its performance on the test set.
-    To
+    The first argument is the path to the dataset, and the second is the path to the generated pseudo-masks (`prediction_cmap` folder). The script will train the model and evaluate its performance on the test set. To run for DecoyMNIST just adjusted the learning rate from 0.001 to 0.01.
 
 
 
