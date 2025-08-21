@@ -4,28 +4,31 @@ import tensorflow as tf
 from PIL import Image
 from tqdm import tqdm
 
-# -------------------------
-# Paths
-# -------------------------
-OUT_ROOT = "saved/DecoyMNIST_images/digit"
+
+try:
+    SCRIPT_DIR = Path(__file__).resolve().parent
+except NameError:
+  
+    SCRIPT_DIR = Path.cwd()
+
+
+root = SCRIPT_DIR / "saved"
+OUT_ROOT = SCRIPT_DIR / "saved" / "DecoyMNIST_images" / "digit"
+
+
+
+# OUT_ROOT = "saved/DecoyMNIST_images/digit"
 TRAIN_DIR = os.path.join(OUT_ROOT, "train")
 TEST_DIR  = os.path.join(OUT_ROOT, "test")
 os.makedirs(TRAIN_DIR, exist_ok=True)
 os.makedirs(TEST_DIR, exist_ok=True)
 
-# -------------------------
-# Reproducibility
-# -------------------------
 np.random.seed(0)
 
-# -------------------------
-# Load MNIST
-# -------------------------
+
 (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()  # uint8, shapes: (60000,28,28), (10000,28,28)
 
-# -------------------------
-# Helpers
-# -------------------------
+
 def save_png_gray(arr_hw_uint8: np.ndarray, path: str):
     """Save (H, W) uint8 array as grayscale PNG."""
     Image.fromarray(arr_hw_uint8, mode="L").save(path)
@@ -65,9 +68,6 @@ def write_split(images: np.ndarray, labels: np.ndarray, out_dir: str, train_spli
         fname = f"{i:06d}_lbl{y}.png"
         save_png_gray(img_decoy, os.path.join(out_dir, fname))
 
-# -------------------------
-# Save images
-# -------------------------
 write_split(x_train, y_train, TRAIN_DIR, train_split=True)   # 60,000
 write_split(x_test,  y_test,  TEST_DIR,  train_split=False)  # 10,000
 

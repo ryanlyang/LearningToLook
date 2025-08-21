@@ -1,9 +1,10 @@
 from scripts import dist_clip_voc
-from move_data import dataset_initializer, moveImageSets, moveImgs, convert_to_jpg, moveBack, sort_by_label
+from move_data import dataset_initializer, moveImageSets, moveImgs, convert_to_jpg, sort_by_label
 from clip import clip_text
 import test_msc_flip_voc
 import argparse
 import shutil
+import os
 
 
 
@@ -46,9 +47,13 @@ def main(setup_data):
     test_msc_flip_voc.outer_main(final_path, config)
 
     sort_by_label.main(dest_dir)
+    sort_by_label.main(src_img_dir + '/digit/test')
+
 
     
-    shutil.move(dest_dir, src_img_dir + '/digit/train')
+    
+    shutil.move(dest_dir, src_img_dir + '/digit/')
+    os.rename(src_img_dir + '/digit/JPEGImages', src_img_dir + '/digit/train')
 
     
 

@@ -26,7 +26,7 @@ step_size = 7     # LR decay every 7 epochs
 gamma = 0.1       # decay factor
 weight_decay = 1e-4
 
-checkpoint_dir = "28.1"
+checkpoint_dir = "LeNet_Checkpoints"
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 SEED = 37
 

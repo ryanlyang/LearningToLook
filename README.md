@@ -63,16 +63,26 @@ The project runs in three main steps:
 
     *   **Important:** Before running, you must edit the hardcoded paths inside the scripts in `code/WeCLIPPlus/generate_psuedo_masks/` and the config file at [`code/WeCLIPPlus/configs/voc_attn_reg.yaml`](code/WeCLIPPlus/configs/voc_attn_reg.yaml) to match your local environment.
 
-    Once configured, run the script:
+    Once configured, change directory:
     ```sh
-    python code/WeCLIPPlus/generate_psuedo_masks.py --setup-data
+    cd code
+    cd WeCLIPPlus
+    ```
+    Then run the script:
+    ```sh
+    python generate_psuedo_masks.py --setup-data
     ```
     This will train WeCLIP+ and save the resulting pseudo-masks in a `results/` directory inside `code/WeCLIPPlus/`.
 
 3.  **Train the Guided CNN**
-    Finally, train the simple CNN using the original images and the generated pseudo-masks.
+    Finally, change directory out:
     ```sh
-    python scripts/run_guided_CNN.py data/saved/ColorMNIST_images/ code/WeCLIPPlus/results/val/prediction_cmap/
+    cd ..
+    cd ..
+    ```
+    Then train the simple CNN using the original images and the generated pseudo-masks:
+    ```sh
+    python scripts/run_guided_CNN.py data/saved/ColorMNIST_images/digit code/WeCLIPPlus/results/val/prediction_cmap/
     ```
     The first argument is the path to the dataset, and the second is the path to the generated pseudo-masks (`prediction_cmap` folder). The script will train the model and evaluate its performance on the test set, reporting the final
 

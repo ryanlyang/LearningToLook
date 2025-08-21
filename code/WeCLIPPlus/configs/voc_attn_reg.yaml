@@ -1,7 +1,7 @@
 dataset:
   root_dir: '/workspace/LearningToLook/code/WeCLIPPlus/VOCdevkit/VOC2012'
   name_list_dir: '/workspace/LearningToLook/code/WeCLIPPlus/VOCdevkit/VOC2012/ImageSets/Main'
-  num_classes: 1
+  num_classes: 2
   crop_size: 320 # 320 for clip-16
   resize_range: [512, 2048]
   rescale_range: [0.5, 2.0]

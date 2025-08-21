@@ -1,13 +1,13 @@
 import os
 
 # ——— EDIT THIS PATH ———
-base_img_dir = r"C:/Users/ryreu/Documents/CLIP Segmentation Work/WeCLIP/WeCLIP+/image_sets/color2.1"
+base_img_dir = r"WeCLIPPlus/image_sets/color2.1"
 # Expecting subfolders:
 #   base_img_dir/fish/*.jpg
 #   base_img_dir/chainsaw/*.jpg
 #   etc.
 
-min_output_dir = r'C:/Users/ryreu/Documents/CLIP Segmentation Work/WeCLIP/WeCLIP+/VOCdevkit/VOC2012/ImageSets/Main'
+min_output_dir = r'WeCLIPPlus/VOCdevkit/VOC2012/ImageSets/Main'
 class_names = ['digit']  # update with your class names
 # —————————————————————
 

@@ -2,16 +2,16 @@ import os
 import shutil
 
 # ——— EDIT THESE PATHS ———
-base_dir = r'C:/Users/ryreu/Documents/CLIP Segmentation Work/WeCLIP/WeCLIP+/image_sets/ColorMNIST'
+base_dir = r'WeCLIPPlus/image_sets/ColorMNIST'
 # Expecting directory structure:
 #   base_dir/digit/*.jpg, base_dir/fish/*.png, etc.
 
-output_dir = r'C:/Users/ryreu/Documents/CLIP Segmentation Work/WeCLIP/WeCLIP+/VOCdevkit/VOC2012/JPEGImages'
+output_dir = r'WeCLIPPlus/VOCdevkit/VOC2012/JPEGImages'
 class_names = ['digit']  # update with your class subfolders
 # —————————————————————
 
 # Create destination folder if it doesn’t exist
-os.makedirs(output_dir, exist_ok=True)
+# os.makedirs(output_dir, exist_ok=True)
 
 
 def main(src_root, dst_root, classes):

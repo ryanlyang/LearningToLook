@@ -3,7 +3,7 @@ import re
 import shutil
 
 # if you're running this script from the folder with the images, leave this as "."
-SOURCE_DIR = r"C:\Users\ryreu\Documents\Color_MNIST\Dataset-REPAIR\saved\colored2\test"
+SOURCE_DIR = r"data\saved\colored2\test"
 # regex to capture the label digit after "lbl"
 pattern = re.compile(r'^.+_lbl([0-9])\.(?:jpg|jpeg|png)$', re.IGNORECASE)
 

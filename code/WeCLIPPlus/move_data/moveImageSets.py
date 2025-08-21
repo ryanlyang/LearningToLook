@@ -3,7 +3,7 @@ import shutil
 from datetime import datetime
 
 # Define paths
-set_dir = r'C:/Users/ryreu/Documents/CLIP Segmentation Work/WeCLIP/WeCLIP+/VOCdevkit/VOC2012/ImageSets/Main'
+set_dir = r'WeCLIPPlus/VOCdevkit/VOC2012/ImageSets/Main'
 # parent_dir = os.path.dirname(main_dir)
 
 

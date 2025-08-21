@@ -7,6 +7,20 @@ from colour import Color
 from pathlib import Path
 import random
 from PIL import Image
+from pathlib import Path
+
+
+try:
+    SCRIPT_DIR = Path(__file__).resolve().parent
+except NameError:
+  
+    SCRIPT_DIR = Path.cwd()
+
+
+root = SCRIPT_DIR / "saved"
+out_root = SCRIPT_DIR / "saved" / "ColorMNIST_images" / "digit"
+(out_root / "train").mkdir(parents=True, exist_ok=True)
+(out_root / "test").mkdir(parents=True, exist_ok=True)
 
 
 np.random.seed(0)
@@ -19,11 +33,6 @@ colors = list(red.range_to(Color("purple"), 10))  # 10 evenly-spaced colors
 # Convert to np arrays in [0,1], shape (10, 3)
 colors = np.stack([np.array(c.get_rgb(), dtype=np.float32) for c in colors], axis=0)  # (10, 3)
 
-
-root = Path("saved")
-out_root = Path("saved/ColorMNIST_images/digit")
-(out_root / "train").mkdir(parents=True, exist_ok=True)
-(out_root / "test").mkdir(parents=True, exist_ok=True)
 
 
 def to_rgb_uint8(img_2d_uint8, rgb_in_01):
