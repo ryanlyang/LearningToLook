@@ -90,7 +90,7 @@ The project runs in three main steps:
 
 ### Acknowledgments
 
-Portions of this repository (the code/WeCLIPPlus directory and related scripts/configs) are derived directly from the WeCLIP+ implementation. We are grateful to the authors for releasing their code and for the foundational contribution their work provides to this project.
+Portions of this repository (the code/WeCLIPPlus directory) are derived directly from the WeCLIP+ implementation. We are grateful to the authors for releasing their code and for the foundational contribution their work provides to this project.
 
 If you use this repository or any WeCLIP+ components, please cite:
 
