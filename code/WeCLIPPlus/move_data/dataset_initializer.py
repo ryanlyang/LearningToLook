@@ -17,12 +17,14 @@ class_names = ['digit']  # update with your class names
 def main(input_dir, classes, output_dir):
     # Collect all basenames from each class folder
 
-    img_dir = os.path.join(input_dir, 'train')
+    # img_dir = os.path.join(input_dir, 'train')
+    # print(img_dir)
     all_basenames = set()
     images_by_class = {cls: set() for cls in classes}
 
     for cls in classes:
-        cls_folder = os.path.join(img_dir, cls)
+        cls_folder_old = os.path.join(input_dir, cls)
+        cls_folder = os.path.join(cls_folder_old, 'train')
         if not os.path.isdir(cls_folder):
             print(f"Warning: class folder not found: {cls_folder}")
             continue

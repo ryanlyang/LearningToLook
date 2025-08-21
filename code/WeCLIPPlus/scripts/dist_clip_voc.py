@@ -391,7 +391,7 @@ def train(cfg):
                 f"wetr_iter_{n_iter+1}.pth"
             )
             if n_iter + 1 == cfg.train.max_iters:
-                last_path = ckpt_path:
+                last_path = ckpt_path
             torch.save(model.state_dict(), ckpt_path)
 
     return last_path

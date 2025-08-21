@@ -17,9 +17,11 @@ os.makedirs(output_dir, exist_ok=True)
 def main(src_root, dst_root, classes):
     image_extensions = ('.jpg', '.jpeg', '.png', '.bmp', '.gif')
     moved_files = 0
+    os.makedirs(dst_root, exist_ok=True)
+
 
     for cls in classes:
-        cls_dir = os.path.join(src_root, cls)
+        cls_dir = src_root
         if not os.path.isdir(cls_dir):
             print(f"Warning: class folder not found: {cls_dir}")
             continue

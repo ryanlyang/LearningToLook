@@ -37,7 +37,7 @@ parser.add_argument(
 )
 args = parser.parse_args([])
 
-def validate(model, dataset, test_scales=None):
+def validate(model, dataset, cfg, test_scales=None):
     
 
     _preds, _gts, _msc_preds, cams = [], [], [], []
@@ -218,7 +218,7 @@ def main(cfg, model_path):
     model.eval()
 
    
-    gts, preds, msc_preds, cams, preds_hist, msc_preds_hist, cams_hist = validate(model=model, dataset=val_dataset, test_scales=[0.5, 1]) #[1, 0.75] [1, 1.5]
+    gts, preds, msc_preds, cams, preds_hist, msc_preds_hist, cams_hist = validate(model=model, dataset=val_dataset, cfg=cfg, test_scales=[0.5, 1]) #[1, 0.75] [1, 1.5]
     #[0.75, 1.0, 1.25, 1.5]
     torch.cuda.empty_cache()
 
@@ -238,12 +238,13 @@ def main(cfg, model_path):
     return True
 
 
-def outer_main(model_path):
+def outer_main(model_path, config_path=None):
 
-    # args = parser.parse_args([])
-    cfg = OmegaConf.load(args.config)
-    print(cfg)
-    print(args)
+    if config_path is None:
+        config_path = args.config  # default from parser
+
+    cfg = OmegaConf.load(config_path)
+
 
     args.work_dir = os.path.join(args.work_dir, args.eval_set)
 
@@ -251,7 +252,7 @@ def outer_main(model_path):
     os.makedirs(args.work_dir + "/prediction", exist_ok=True)
     os.makedirs(args.work_dir + "/prediction_cmap", exist_ok=True)
 
-    main(cfg=cfg, model_path)
+    main(cfg, model_path)
 
 
 if __name__ == '__main__':

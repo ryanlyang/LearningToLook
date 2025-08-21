@@ -1,8 +1,10 @@
 from scripts import dist_clip_voc
-from move_data import dataset_initializer, moveImageSets, moveImgs, convert_to_jpg, moveBack
+from move_data import dataset_initializer, moveImageSets, moveImgs, convert_to_jpg, moveBack, sort_by_label
 from clip import clip_text
 import test_msc_flip_voc
 import argparse
+import shutil
+
 
 
 
@@ -14,16 +16,16 @@ import argparse
 # Make sure that you have edited BACKGROUND_CATEGORY and class names and new_class_names in 
 # C:\Users\ryreu\Documents\CLIP Segmentation Work\WeCLIP\WeCLIP+\clip\clip_text.py
 
-# Make sure you have edited the correct file paths in config
+# Make sure you have edited the correct file paths in configs/voc_attn_reg.yaml
 
 
-config = r"code/WeCLIPPlus/configs/voc_attn_reg.yaml"
+config = r"/workspace/LearningToLook/code/WeCLIPPlus/configs/voc_attn_reg.yaml"
 
-src_img_dir = r'data/saved/ColorMNIST_images'
+src_img_dir = r'/workspace/LearningToLook/data/saved/ColorMNIST_images'
 
-set_dir = r'code/WeCLIPPlus/VOCdevkit/VOC2012/ImageSets/Main'
+set_dir = r'/workspace/LearningToLook/code/WeCLIPPlus/VOCdevkit/VOC2012/ImageSets/Main'
 
-dest_dir = r'code/WeCLIPPlus/VOCdevkit/VOC2012/JPEGImages'
+dest_dir = r'/workspace/LearningToLook/code/WeCLIPPlus/VOCdevkit/VOC2012/JPEGImages'
 
 class_names = clip_text.class_names
 
@@ -35,15 +37,20 @@ def main(setup_data):
 
         dataset_initializer.main(src_img_dir,class_names, set_dir)
 
-        moveImgs.main(src_img_dir, dest_dir, class_names)
+        moveImgs.main(src_img_dir + '/digit/train', dest_dir, class_names)
     else:
         print("Skipping Setup")
 
     convert_to_jpg.convert_to_jpg(dest_dir, True)
     final_path = dist_clip_voc.main(config)
-    test_msc_flip_voc.outer_main(final_path)
+    test_msc_flip_voc.outer_main(final_path, config)
 
-    moveBack.main(dest_dir, src_img_dir)
+    sort_by_label.main(dest_dir)
+
+    
+    shutil.move(dest_dir, src_img_dir + '/digit/train')
+
+    
 
 
 
