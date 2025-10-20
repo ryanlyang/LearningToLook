@@ -23,7 +23,7 @@ import os
 
 config = r"/workspace/LearningToLook/code/WeCLIPPlus/configs/voc_attn_reg.yaml"
 
-src_img_dir = r'/workspace/LearningToLook/data/NICO_DG'
+src_img_dir = r'/workspace/LearningToLook/data/NICO_DG/NICO_DG'
  
 set_dir = r'/workspace/LearningToLook/code/WeCLIPPlus/VOCdevkit/VOC2012/ImageSets/Main'
 
@@ -44,7 +44,8 @@ def main(setup_data):
         print("Skipping Setup")
 
     #convert_to_jpg.convert_to_jpg(dest_dir, True)
-    final_path = dist_clip_voc.main(config)
+    # final_path = dist_clip_voc.main(config)
+    final_path = r"/workspace/LearningToLook/code/WeCLIPPlus/work_dir_voc/checkpoints/2025-10-19-05-29/wetr_iter_5000.pth"
     test_msc_flip_voc.outer_main(final_path, config)
 
     # sort_by_label.main(dest_dir)

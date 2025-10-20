@@ -2,4 +2,6 @@ data/saved/
 LeNet_Checkpoints/
 data4/
 data/github/
-data/NICO_DG
+data/NICO_DG/
+data/NICO_DG_BIG/
+data/NICO_DG.zip
