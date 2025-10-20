@@ -1,7 +1,7 @@
 dataset:
   root_dir: '/workspace/LearningToLook/code/WeCLIPPlus/VOCdevkit/VOC2012'
   name_list_dir: '/workspace/LearningToLook/code/WeCLIPPlus/VOCdevkit/VOC2012/ImageSets/Main'
-  num_classes: 2
+  num_classes: 60
   crop_size: 320 # 320 for clip-16
   resize_range: [512, 2048]
   rescale_range: [0.5, 2.0]
@@ -16,8 +16,8 @@ work_dir:
 
 train:
   split: train
-  samples_per_gpu: 4 #4 #2
-  max_iters: 30000 #30000 originally
+  samples_per_gpu: 16 #4 #2
+  max_iters: 80000 #30000 originally
   cam_iters: 2000 #2000 Originally
   eval_iters: 2000
   log_iters: 200

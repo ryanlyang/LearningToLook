@@ -218,7 +218,7 @@ def main(cfg, model_path):
     model.eval()
 
    
-    gts, preds, msc_preds, cams, preds_hist, msc_preds_hist, cams_hist = validate(model=model, dataset=val_dataset, cfg=cfg, test_scales=[0.5, 1]) #[1, 0.75] [1, 1.5]
+    gts, preds, msc_preds, cams, preds_hist, msc_preds_hist, cams_hist = validate(model=model, dataset=val_dataset, cfg=cfg, test_scales=[1,1.5]) #[1, 0.75] [1, 1.5]
     #[0.75, 1.0, 1.25, 1.5]
     torch.cuda.empty_cache()
 
@@ -256,4 +256,4 @@ def outer_main(model_path, config_path=None):
 
 
 if __name__ == '__main__':
-    outer_main()
+    outer_main(r"/workspace/LearningToLook/code/WeCLIPPlus/work_dir_voc/checkpoints/2025-10-19-05-29/wetr_iter_2000.pth")

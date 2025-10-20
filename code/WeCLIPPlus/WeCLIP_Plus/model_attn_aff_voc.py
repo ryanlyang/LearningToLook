@@ -114,10 +114,15 @@ class WeCLIP_Plus(nn.Module):
         self.decoder = DecoderTransformer(width=self.embedding_dim, layers=decoder_layers, heads=8, output_dim=self.num_classes)
 
 
-        self.bg_text_features = zeroshot_classifier(BACKGROUND_CATEGORY, ['a clean origami {}.'],
-                                               self.encoder)  # ['a rendering of a weird {}.'], model)
-        self.fg_text_features = zeroshot_classifier(new_class_names, ['a clean origami {}.'],
-                                               self.encoder)  # ['a rendering of a weird {}.'], model) (20, 512)
+        # GPU optimization: pre-compute and cache text features
+        with torch.no_grad():
+            self.bg_text_features = zeroshot_classifier(BACKGROUND_CATEGORY, ['a clean origami {}.'],
+                                                   self.encoder)  # ['a rendering of a weird {}.'], model)
+            self.fg_text_features = zeroshot_classifier(new_class_names, ['a clean origami {}.'],
+                                                   self.encoder)  # ['a rendering of a weird {}.'], model) (20, 512)
+            # Keep them on GPU permanently
+            self.bg_text_features = self.bg_text_features.cuda()
+            self.fg_text_features = self.fg_text_features.cuda()
 
 
         self.target_layers = [self.encoder.visual.transformer.resblocks[-1].ln_1]

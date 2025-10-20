@@ -105,8 +105,9 @@ def generate_trans_mat_seg(aff_mask, attn_weight, grayscale_cam):
 def perform_single_voc_cam(img_path, image, image_features, attn_weight_list, seg_attn, bg_text_features,
                        fg_text_features, cam, mode='train', require_seg_trans=False, dino_att=None, seg_dino_cam=None,
                                    clip_flag=16):
-    bg_text_features = bg_text_features.cuda()
-    fg_text_features = fg_text_features.cuda()
+    # GPU optimization: text features are already on GPU from model init
+    # bg_text_features = bg_text_features.cuda()  # Removed redundant call
+    # fg_text_features = fg_text_features.cuda()  # Removed redundant call
 
     # xmlfile = img_path.replace('/JPEGImages', '/Annotations')
     # xmlfile = xmlfile.replace('.jpg', '.xml')
@@ -161,10 +162,11 @@ def perform_single_voc_cam(img_path, image, image_features, attn_weight_list, se
 
     cam_refined_list = []
 
-    bg_features_temp = bg_text_features.cuda()  # [bg_id_for_each_image[im_idx]].to(device_id)
-    fg_features_temp = fg_text_features[label_id_list].cuda()
+    # GPU optimization: already on GPU, no need for redundant .cuda() calls
+    bg_features_temp = bg_text_features  # Already on GPU
+    fg_features_temp = fg_text_features[label_id_list]  # Already on GPU
     text_features_temp = torch.cat([fg_features_temp, bg_features_temp], dim=0)
-    input_tensor = [image_features, text_features_temp.cuda(), h, w]
+    input_tensor = [image_features, text_features_temp, h, w]
 
     for idx, label in enumerate(label_list):
         label_index = new_class_names.index(label)
@@ -176,8 +178,10 @@ def perform_single_voc_cam(img_path, image, image_features, attn_weight_list, se
 
         grayscale_cam = grayscale_cam[0, :]
 
-        grayscale_cam_highres = cv2.resize(grayscale_cam, (w, h))
-        grayscale_cam_highres = torch.tensor(grayscale_cam_highres)
+        # GPU optimization: use torch instead of cv2.resize to keep data on GPU
+        grayscale_cam_tensor = torch.from_numpy(grayscale_cam).unsqueeze(0).unsqueeze(0).float().cuda()
+        grayscale_cam_highres = F.interpolate(grayscale_cam_tensor, size=(h, w), mode='bilinear', align_corners=False)
+        grayscale_cam_highres = grayscale_cam_highres.squeeze(0).squeeze(0)
 
 
         highres_cam_to_save.append(grayscale_cam_highres)
@@ -213,8 +217,9 @@ def perform_single_voc_cam(img_path, image, image_features, attn_weight_list, se
             _trans_mat = compute_trans_mat(attn_weight)
         _trans_mat = _trans_mat.float()
 
+        # GPU optimization: keep bbox computation on GPU when possible
         box, cnt = scoremap2bbox(scoremap=grayscale_cam, threshold=0.4, multi_contour_eval=True)
-        aff_mask = torch.zeros((grayscale_cam.shape[0], grayscale_cam.shape[1])).cuda()
+        aff_mask = torch.zeros((grayscale_cam.shape[0], grayscale_cam.shape[1]), device='cuda')
         for i_ in range(cnt):
             x0_, y0_, x1_, y1_ = box[i_]
             aff_mask[y0_:y1_, x0_:x1_] = 1
@@ -227,7 +232,8 @@ def perform_single_voc_cam(img_path, image, image_features, attn_weight_list, se
             dino_aff_mask = F.interpolate(dino_aff_mask, size=(dino_fts_h, dino_fts_w), mode='nearest')
             dino_aff_mask = dino_aff_mask.view(1, dino_fts_h*dino_fts_w)
             dino_trans_mat = dino_trans_mat.float()*dino_aff_mask
-            dino_cam = torch.FloatTensor(grayscale_cam).cuda().unsqueeze(0).unsqueeze(0)
+            # GPU optimization: create tensor directly on GPU
+            dino_cam = torch.as_tensor(grayscale_cam, dtype=torch.float32, device='cuda').unsqueeze(0).unsqueeze(0)
             dino_cam_to_refine = F.interpolate(dino_cam, size=(dino_fts_h, dino_fts_w),
                                                mode='bilinear', align_corners=False)
             dino_cam_to_refine = dino_cam_to_refine.view(-1, 1)
@@ -235,7 +241,8 @@ def perform_single_voc_cam(img_path, image, image_features, attn_weight_list, se
             dino_cam_refine = F.interpolate(dino_cam_refine, size=(h//16, w//16), mode='bilinear', align_corners=False)
             dino_cam_refine = dino_cam_refine.squeeze(0).squeeze(0)
 
-        cam_to_refine = torch.FloatTensor(grayscale_cam).cuda()
+        # GPU optimization: create tensor directly on GPU
+        cam_to_refine = torch.as_tensor(grayscale_cam, dtype=torch.float32, device='cuda')
 
         # if seg_dino_cam is not None:
         #     seg_dino_cam_per_class = seg_dino_cam[label_index + 1]
@@ -269,24 +276,35 @@ def generate_cam_label(cam_refined_list, keys, w, h):
     refined_cam_to_save = []
     refined_cam_all_scales = []
     for cam_refined in cam_refined_list:
-        cam_refined = cam_refined.cpu().numpy().astype(np.float32)
-        cam_refined_highres = scale_cam_image([cam_refined], (w, h))[0]
-        refined_cam_to_save.append(torch.tensor(cam_refined_highres))
+        # GPU optimization: keep tensors on GPU, use torch.nn.functional instead of numpy
+        if not isinstance(cam_refined, torch.Tensor):
+            cam_refined = torch.from_numpy(cam_refined).cuda()
+        cam_refined = cam_refined.float()
+
+        # Resize using torch operations instead of scale_cam_image (which uses numpy)
+        cam_refined_highres = F.interpolate(
+            cam_refined.unsqueeze(0).unsqueeze(0),
+            size=(h, w),
+            mode='bilinear',
+            align_corners=False
+        ).squeeze(0).squeeze(0)
+        refined_cam_to_save.append(cam_refined_highres)
 
     keys = torch.tensor(keys)
 
-    refined_cam_all_scales.append(torch.stack(refined_cam_to_save,dim=0))
+    refined_cam_all_scales.append(torch.stack(refined_cam_to_save, dim=0))
 
     refined_cam_all_scales = refined_cam_all_scales[0]
-    
-    return {'keys': keys.numpy(), 'refined_cam':refined_cam_all_scales}
+
+    return {'keys': keys.numpy(), 'refined_cam': refined_cam_all_scales}
 
 
 
 def perform_single_coco_cam(img_path, image, image_features, attn_weight_list, seg_attn, bg_text_features,
                         fg_text_features, cam, mode='train', require_seg_trans=False, seg_dino_cam=None, clip_flag=16):
-    bg_text_features = bg_text_features.cuda()
-    fg_text_features = fg_text_features.cuda()
+    # GPU optimization: text features are already on GPU from model init
+    # bg_text_features = bg_text_features.cuda()  # Removed redundant call
+    # fg_text_features = fg_text_features.cuda()  # Removed redundant call
 
     ori_image = Image.open(img_path)
     ori_height, ori_width = np.asarray(ori_image).shape[:2]
@@ -310,10 +328,11 @@ def perform_single_coco_cam(img_path, image, image_features, attn_weight_list, s
 
     cam_refined_list = []
 
-    bg_features_temp = bg_text_features.cuda()  # [bg_id_for_each_image[im_idx]].to(device_id)
-    fg_features_temp = fg_text_features[label_id_list].cuda()
+    # GPU optimization: already on GPU, no need for redundant .cuda() calls
+    bg_features_temp = bg_text_features  # Already on GPU
+    fg_features_temp = fg_text_features[label_id_list]  # Already on GPU
     text_features_temp = torch.cat([fg_features_temp, bg_features_temp], dim=0)
-    input_tensor = [image_features, text_features_temp.cuda(), h, w]
+    input_tensor = [image_features, text_features_temp, h, w]
 
     for idx, label in enumerate(label_list):
         label_index = new_class_names_coco.index(label)
@@ -325,8 +344,11 @@ def perform_single_coco_cam(img_path, image, image_features, attn_weight_list, s
 
         grayscale_cam = grayscale_cam[0, :]
 
-        grayscale_cam_highres = cv2.resize(grayscale_cam, (w, h))
-        highres_cam_to_save.append(torch.tensor(grayscale_cam_highres))
+        # GPU optimization: use torch instead of cv2.resize to keep data on GPU
+        grayscale_cam_tensor = torch.from_numpy(grayscale_cam).unsqueeze(0).unsqueeze(0).float().cuda()
+        grayscale_cam_highres = F.interpolate(grayscale_cam_tensor, size=(h, w), mode='bilinear', align_corners=False)
+        grayscale_cam_highres = grayscale_cam_highres.squeeze(0).squeeze(0)
+        highres_cam_to_save.append(grayscale_cam_highres)
 
         if idx == 0:
             if require_seg_trans == True:
@@ -359,13 +381,15 @@ def perform_single_coco_cam(img_path, image, image_features, attn_weight_list, s
             _trans_mat = compute_trans_mat(attn_weight)
         _trans_mat = _trans_mat.float()
 
+        # GPU optimization: create mask directly on GPU
         box, cnt = scoremap2bbox(scoremap=grayscale_cam, threshold=0.7, multi_contour_eval=True)
-        aff_mask = torch.zeros((grayscale_cam.shape[0], grayscale_cam.shape[1]))
+        aff_mask = torch.zeros((grayscale_cam.shape[0], grayscale_cam.shape[1]), device='cuda')
         for i_ in range(cnt):
             x0_, y0_, x1_, y1_ = box[i_]
             aff_mask[y0_:y1_, x0_:x1_] = 1
 
-        cam_to_refine = torch.FloatTensor(grayscale_cam).cuda()
+        # GPU optimization: create tensor directly on GPU
+        cam_to_refine = torch.as_tensor(grayscale_cam, dtype=torch.float32, device='cuda')
 
         if seg_dino_cam is not None:
             seg_dino_cam_per_class = seg_dino_cam[label_index + 1]
@@ -375,7 +399,8 @@ def perform_single_coco_cam(img_path, image, image_features, attn_weight_list, s
 
         aff_mask = aff_mask.view(1, grayscale_cam.shape[0] * grayscale_cam.shape[1])
 
-        trans_mat = _trans_mat * aff_mask.cuda()
+        # GPU optimization: aff_mask is already on GPU
+        trans_mat = _trans_mat * aff_mask
 
         cam_to_refine = cam_to_refine.view(-1, 1)
 

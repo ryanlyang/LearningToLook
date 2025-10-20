@@ -235,9 +235,10 @@ def train(cfg):
                               batch_size=cfg.train.samples_per_gpu,
                               shuffle=True,
                               num_workers=num_workers,
-                              pin_memory=False,
+                              pin_memory=True,  # GPU optimization: faster host-to-device transfer
                               drop_last=True,
                               prefetch_factor=4,
+                              persistent_workers=True,  # GPU optimization: keep workers alive
                             #   collate_fn=smart_collate
                               )
 
