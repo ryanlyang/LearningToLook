@@ -45,8 +45,13 @@ class PAR(nn.Module):
             _x_pad = _x_pad.reshape(b*c, -1, _x_pad.shape[-2], _x_pad.shape[-1])
             _x = F.conv2d(_x_pad, self.kernel, dilation=d).view(b, c, -1, h, w)
             x_aff.append(_x)
- 
-        return torch.cat(x_aff, dim=2)
+            # Clear intermediate tensors to save memory
+            del _x_pad
+
+        result = torch.cat(x_aff, dim=2)
+        # Clear list to free memory
+        del x_aff
+        return result
 
     def get_pos(self):
         pos_xy = []

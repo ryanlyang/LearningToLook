@@ -46,7 +46,7 @@ def main(setup_data):
     #convert_to_jpg.convert_to_jpg(dest_dir, True)
     # final_path = dist_clip_voc.main(config)
     final_path = r"/workspace/LearningToLook/code/WeCLIPPlus/work_dir_voc/checkpoints/2025-10-19-05-29/wetr_iter_5000.pth"
-    test_msc_flip_voc.outer_main(final_path, config)
+    test_msc_flip_voc.outer_main(final_path, config, chunk_size=10)
 
     # sort_by_label.main(dest_dir)
     # sort_by_label.main(src_img_dir + '/digit/test')
