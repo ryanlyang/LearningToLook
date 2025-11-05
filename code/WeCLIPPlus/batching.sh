@@ -24,4 +24,4 @@ spack load opencv
 cd /home/ryreu/guided_cnn/code/LearningToLook/code/WeCLIPPlus    # replace <your_repo_name> with your actual folder
 
 # ——————— Run the hyperparameter script ———————
-python generate_pseudo_masks_NICO.py
+python generate_psuedo_masks_NICO.py
