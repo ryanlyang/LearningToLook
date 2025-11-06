@@ -17,9 +17,9 @@ mkdir -p /home/ryreu/guided_cnn/logs
 # ---- Env ----
 spack env activate default-ml-x86_64-25050601
 spack load opencv
-spack load py-pytorch
-spack load py-torchvision
-spack load py-omegaconf
+# spack load py-pytorch
+# spack load py-torchvision
+# spack load py-omegaconf
 # spack load py-hydra-core  # if you use Hydra configs
 
 # ---- Run dir ----
