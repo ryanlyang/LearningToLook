@@ -32,8 +32,8 @@ export MKL_NUM_THREADS="${SLURM_CPUS_PER_TASK:-1}"
 export NUMEXPR_NUM_THREADS="${SLURM_CPUS_PER_TASK:-1}"
 
 # ---- Graceful timeout hook (optional) ----
-trap 'pkill -SIGUSR1 -f generate_pseudo_masks_NICO.py || true' TERM
+trap 'pkill -SIGUSR1 -f generate_psuedo_masks_NICO.py || true' TERM
 
 # ---- Launch ----
-srun --unbuffered python -u generate_pseudo_masks_NICO.py \
+srun --unbuffered python -u generate_psuedo_masks_NICO.py \
     --num_workers "$(( ${SLURM_CPUS_PER_TASK:-24} - 1 ))"
