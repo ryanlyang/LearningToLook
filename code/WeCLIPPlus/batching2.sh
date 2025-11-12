@@ -11,19 +11,40 @@
 #SBATCH --error=/home/ryreu/guided_cnn/logs/%x_%j.err
 #SBATCH --signal=TERM@120
 
-set -euo pipefail
+set -Eeuo pipefail
 mkdir -p /home/ryreu/guided_cnn/logs
 
+# Activate Conda env
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate learntolook
 
+# Match threads to CPUs
 export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-1}"
 export MKL_NUM_THREADS="${SLURM_CPUS_PER_TASK:-1}"
 export NUMEXPR_NUM_THREADS="${SLURM_CPUS_PER_TASK:-1}"
 export PYTHONNOUSERSITE=1
 
+# Go to repo
 cd /home/ryreu/guided_cnn/code/LearningToLook/code/WeCLIPPlus
-export PYTHONPATH="$PWD:$PYTHONPATH"
 
+# Make repo importable (safe if PYTHONPATH was unset)
+export PYTHONPATH="$PWD:${PYTHONPATH:-}"
+
+# Basic sanity info in your .out file
+echo "[$(date)] Host: $(hostname)"
+echo "SLURM_CPUS_PER_TASK=${SLURM_CPUS_PER_TASK:-unset}"
+which python
+python - <<'PY'
+import sys, torch
+print("Python:", sys.version.split()[0])
+print("Torch:", getattr(torch, "__version__", "missing"),
+      "CUDA:", getattr(torch.version, "cuda", "n/a"),
+      "CUDA available:", torch.cuda.is_available() if hasattr(torch, "cuda") else "n/a")
+PY
+
+# Hard check the entry script exists
+test -f generate_pseudo_masks_NICO.py || { echo "Missing generate_pseudo_masks_NICO.py" >&2; exit 2; }
+
+# Run
 srun --unbuffered python -u generate_pseudo_masks_NICO.py \
   --num_workers "$(( ${SLURM_CPUS_PER_TASK:-24} - 1 ))"
