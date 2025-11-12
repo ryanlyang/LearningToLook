@@ -14,26 +14,16 @@
 set -euo pipefail
 mkdir -p /home/ryreu/guided_cnn/logs
 
-# ---- Env ----
-spack env activate default-ml-x86_64-25050601
-spack load opencv
-# spack load py-pytorch
-# spack load py-torchvision
-# spack load py-omegaconf
-# spack load py-hydra-core  # if you use Hydra configs
+source ~/miniconda3/etc/profile.d/conda.sh
+conda activate learntolook
 
-# ---- Run dir ----
-cd /home/ryreu/guided_cnn/code/LearningToLook/code/WeCLIPPlus
-
-# ---- Imports + threads ----
-export PYTHONPATH="$PWD:$PYTHONPATH"
 export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-1}"
 export MKL_NUM_THREADS="${SLURM_CPUS_PER_TASK:-1}"
 export NUMEXPR_NUM_THREADS="${SLURM_CPUS_PER_TASK:-1}"
+export PYTHONNOUSERSITE=1
 
-# ---- Graceful timeout hook (optional) ----
-trap 'pkill -SIGUSR1 -f generate_psuedo_masks_NICO.py || true' TERM
+cd /home/ryreu/guided_cnn/code/LearningToLook/code/WeCLIPPlus
+export PYTHONPATH="$PWD:$PYTHONPATH"
 
-# ---- Launch ----
-srun --unbuffered python -u generate_psuedo_masks_NICO.py \
-    --num_workers "$(( ${SLURM_CPUS_PER_TASK:-24} - 1 ))"
+srun --unbuffered python -u generate_pseudo_masks_NICO.py \
+  --num_workers "$(( ${SLURM_CPUS_PER_TASK:-24} - 1 ))"

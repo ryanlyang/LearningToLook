@@ -159,7 +159,7 @@ def crf_proc(config):
 
         label = None
 
-        if image.ndim == 2:                             
+        if image.ndim == 2:
             image = np.stack([image, image, image], axis=-1)
 
         H, W, _ = image.shape
@@ -169,24 +169,41 @@ def crf_proc(config):
 
         image = image.astype(np.uint8)
         prob = post_processor(image, prob)
-        # fg_conf = prob[1]                              # confidence for your “object” class
+        # fg_conf = prob[1]                              # confidence for your "object" class
         # pred    = np.where(fg_conf > args.bkg_score, 1, 0)
         pred = np.argmax(prob, axis=0)
 
-        imageio.imsave(os.path.join(args.work_dir, "prediction", name + ".png"), np.squeeze(pred).astype(np.uint8))
-        imageio.imsave(os.path.join(args.work_dir, "prediction_cmap", name + ".png"), encode_cmap(np.squeeze(pred)).astype(np.uint8))
-        return pred, label
+        return name, pred, label
 
     # n_jobs = int(multiprocessing.cpu_count() * 0.8)
     n_jobs = 1
-    results = joblib.Parallel(n_jobs=n_jobs, verbose=10, pre_dispatch="all")([joblib.delayed(_job)(i) for i in range(len(name_list))])
+    batch_size = 100
+
+    # Process and save in batches of 100
+    for batch_start in range(0, len(name_list), batch_size):
+        batch_end = min(batch_start + batch_size, len(name_list))
+        batch_indices = list(range(batch_start, batch_end))
+
+        print(f"\nProcessing batch: images {batch_start} to {batch_end-1}")
+
+        results = joblib.Parallel(n_jobs=n_jobs, verbose=10, pre_dispatch="all")(
+            [joblib.delayed(_job)(i) for i in batch_indices]
+        )
+
+        # Save all results from this batch
+        print(f"Saving batch: images {batch_start} to {batch_end-1}")
+        for name, pred, label in results:
+            imageio.imsave(os.path.join(args.work_dir, "prediction", name + ".png"), np.squeeze(pred).astype(np.uint8))
+            imageio.imsave(os.path.join(args.work_dir, "prediction_cmap", name + ".png"), encode_cmap(np.squeeze(pred)).astype(np.uint8))
+
+        print(f"Batch saved successfully!")
 
     # preds, gts = zip(*results)
     # hist = np.zeros((21, 21))
     # hist, score = evaluate.scores(gts, preds, hist, 21)
 
     # print(score)
-    
+
     return True
 
 def main(cfg, model_path):
