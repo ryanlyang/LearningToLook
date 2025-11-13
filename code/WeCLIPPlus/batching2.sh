@@ -14,37 +14,35 @@
 set -Eeuo pipefail
 mkdir -p /home/ryreu/guided_cnn/logs
 
-# Activate Conda env
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate learntolook
 
-# Match threads to CPUs
+# Quiet TensorFlow logs (and save a bit of stdout spam)
+export TF_CPP_MIN_LOG_LEVEL=3
+export TF_ENABLE_ONEDNN_OPTS=0
+
+# Threading hints
 export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-1}"
 export MKL_NUM_THREADS="${SLURM_CPUS_PER_TASK:-1}"
 export NUMEXPR_NUM_THREADS="${SLURM_CPUS_PER_TASK:-1}"
 export PYTHONNOUSERSITE=1
 
-# Go to repo
 cd /home/ryreu/guided_cnn/code/LearningToLook/code/WeCLIPPlus
-
-# Make repo importable (safe if PYTHONPATH was unset)
 export PYTHONPATH="$PWD:${PYTHONPATH:-}"
 
-# Basic sanity info in your .out file
+# Sanity print
 echo "[$(date)] Host: $(hostname)"
-echo "SLURM_CPUS_PER_TASK=${SLURM_CPUS_PER_TASK:-unset}"
 which python
 python - <<'PY'
 import sys, torch
 print("Python:", sys.version.split()[0])
-print("Torch:", getattr(torch, "__version__", "missing"),
-      "CUDA:", getattr(torch.version, "cuda", "n/a"),
-      "CUDA available:", torch.cuda.is_available() if hasattr(torch, "cuda") else "n/a")
+print("Torch:", getattr(torch,'__version__','missing'),
+      "CUDA:", getattr(torch.version,'cuda','n/a'),
+      "CUDA available:", torch.cuda.is_available() if hasattr(torch,'cuda') else 'n/a')
 PY
 
-# Hard check the entry script exists
+# Ensure entrypoint exists
 test -f generate_pseudo_masks_NICO.py || { echo "Missing generate_pseudo_masks_NICO.py" >&2; exit 2; }
 
-# Run
-srun --unbuffered python -u generate_pseudo_masks_NICO.py \
-  --num_workers "$(( ${SLURM_CPUS_PER_TASK:-24} - 1 ))"
+# Run (no --num_workers since the script doesn't accept it)
+srun --unbuffered python -u generate_pseudo_masks_NICO.py
