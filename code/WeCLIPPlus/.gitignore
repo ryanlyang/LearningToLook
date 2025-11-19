@@ -8,6 +8,8 @@ image_sets/
 
 VOCdevkit/VOC2012/JPEGImages/
 
+VOCdevkit/VOC2012/ImageSets/Main/
+
 VOCdevkit/VOC2012/ImgStore/
 
 pretrained/ViT-B-16.pt
