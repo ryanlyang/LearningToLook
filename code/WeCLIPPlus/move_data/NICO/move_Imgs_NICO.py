@@ -19,7 +19,7 @@ def main(src_root, dst_root, do_copy=False):
         for cls in sorted(d for d in os.listdir(env_dir)
                           if os.path.isdir(os.path.join(env_dir, d))):
             cls_src = os.path.join(env_dir, cls)
-            cls_dst = os.path.join(dst_root, env, cls)  # preserve structure
+            cls_dst = os.path.join(dst_root, cls)  # organize by class only
             os.makedirs(cls_dst, exist_ok=True)
 
             for fname in os.listdir(cls_src):
@@ -39,7 +39,7 @@ def main(src_root, dst_root, do_copy=False):
                     print(f"Error moving {src_path} → {dst_path}: {e}")
 
     print(f"{'Copied' if do_copy else 'Moved'} {moved_files} images "
-          f"from '{src_root}' → '{dst_root}' preserving filenames and hierarchy.")
+          f"from '{src_root}' → '{dst_root}' organized by class.")
 
 if __name__ == "__main__":
     main(base_dir, output_dir, do_copy=False)  # set do_copy=True if you prefer copying

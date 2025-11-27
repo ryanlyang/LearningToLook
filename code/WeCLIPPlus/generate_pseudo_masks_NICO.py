@@ -2,7 +2,7 @@ from scripts import dist_clip_voc
 from move_data import moveImageSets, convert_to_jpg, sort_by_label
 from move_data.NICO import dataset_init_NICO, move_Imgs_NICO
 from clip import clip_text
-import test_msc_flip_voc
+import test_voc2
 import argparse
 import shutil
 import os
@@ -45,9 +45,9 @@ def main(setup_data):
 
     #convert_to_jpg.convert_to_jpg(dest_dir, True)
     # final_path = dist_clip_voc.main(config)
-    final_path = r"/home/ryreu/guided_cnn/code/LearningToLook/code/WeCLIPPlus/work_dir_voc/checkpoints/2025-11-13-12-07/wetr_iter_30000.pth"
+    # final_path = r"/home/ryreu/guided_cnn/code/LearningToLook/code/WeCLIPPlus/work_dir_voc/checkpoints/2025-11-13-12-07/wetr_iter_30000.pth"
     # final_path = r"/workspace/LearningToLook/code/WeCLIPPlus/work_dir_voc/checkpoints/2025-10-19-05-29/wetr_iter_5000.pth"
-    test_msc_flip_voc.outer_main(final_path)
+    # test_voc2.outer_main(final_path)
 
     # sort_by_label.main(dest_dir)
     # sort_by_label.main(src_img_dir + '/digit/test')
@@ -71,7 +71,7 @@ if __name__ == '__main__':
                         help='Run data setup steps (move ImageSets, init dataset, move images).')
     parser.add_argument('--no-setup-data', dest='setup_data', action='store_false',
                         help='Skip data setup steps.')
-    parser.set_defaults(setup_data=False)  # default = skip
+    parser.set_defaults(setup_data=True)  # default = skip
     args = parser.parse_args()
 
     main(args.setup_data)

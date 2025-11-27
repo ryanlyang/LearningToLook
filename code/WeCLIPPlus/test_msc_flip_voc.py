@@ -37,11 +37,11 @@ parser.add_argument(
 )
 args = parser.parse_args([])
 
-def validate(model, dataset, cfg, test_scales=None, images_path=None):
-
+def validate(model, dataset, cfg, test_scales=None):
+    
 
     _preds, _gts, _msc_preds, cams = [], [], [], []
-
+    
     data_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False, num_workers=2, pin_memory=False)
     model.cuda()
     model.eval()
@@ -51,16 +51,6 @@ def validate(model, dataset, cfg, test_scales=None, images_path=None):
     _preds_hist = np.zeros((21, 21))
     _msc_preds_hist = np.zeros((21, 21))
     _cams_hist = np.zeros((21, 21))
-
-    # Initialize CRF post-processor
-    post_processor = DenseCRF(
-        iter_max=10,
-        pos_xy_std=3,
-        pos_w=3,
-        bi_xy_std=64,
-        bi_rgb_std=5,
-        bi_w=4,
-    )
 
     for idx, data in tqdm(enumerate(data_loader), total=len(data_loader), ncols=100, ascii=" >="):
         num+=1
@@ -82,7 +72,7 @@ def validate(model, dataset, cfg, test_scales=None, images_path=None):
         torch.cuda.empty_cache()
 
         segs_cat = 0.5 * segs_dino_cat + 0.5*segs_clip_cat
-
+        
         cam = cam[0].unsqueeze(0)
         segs = segs_cat[0].unsqueeze(0)
 
@@ -106,7 +96,7 @@ def validate(model, dataset, cfg, test_scales=None, images_path=None):
                 segs_list.append(_segs)
 
         msc_segs = torch.mean(torch.stack(segs_list, dim=0), dim=0).unsqueeze(0)
-
+        
         resized_segs = F.interpolate(segs, size=labels.shape[1:], mode='bilinear', align_corners=False)
         seg_preds = torch.argmax(resized_segs, dim=1)
         print('seg_shape', seg_preds.shape, 'labels', labels.shape, 'cam', cam.shape)
@@ -126,42 +116,9 @@ def validate(model, dataset, cfg, test_scales=None, images_path=None):
             _cams_hist, cam_score = evaluate.scores(_gts, cams, _cams_hist)
             _preds, _gts, _msc_preds, cams = [], [], [], []
 
-        # Save logits
+
         np.save(args.work_dir+ '/logit/' + name[0] + '.npy', {"segs":segs.detach().cpu().numpy(), "msc_segs":msc_segs.detach().cpu().numpy()})
-
-        # Generate and save predictions + cmaps on the fly
-        logit = msc_segs.detach().cpu().numpy()
-        logit = torch.FloatTensor(logit)
-
-        # Load original image for CRF
-        if images_path:
-            image_name = os.path.join(images_path, name[0] + ".jpg")
-            if os.path.exists(image_name):
-                image = imageio.imread(image_name).astype(np.float32)
-
-                if image.ndim == 2:
-                    image = np.stack([image, image, image], axis=-1)
-
-                H, W, _ = image.shape
-                logit_resized = F.interpolate(logit, size=(H, W), mode="bilinear", align_corners=False)
-                prob = F.softmax(logit_resized, dim=1)[0].numpy()
-
-                image = image.astype(np.uint8)
-                prob = post_processor(image, prob)
-                pred = np.argmax(prob, axis=0)
-            else:
-                # Fallback if image not found
-                prob = F.softmax(logit, dim=1)[0].numpy()
-                pred = np.argmax(prob, axis=0)
-        else:
-            # No CRF, just softmax + argmax
-            prob = F.softmax(logit, dim=1)[0].numpy()
-            pred = np.argmax(prob, axis=0)
-
-        # Save prediction and cmap
-        imageio.imsave(os.path.join(args.work_dir, "prediction", name[0] + ".png"), np.squeeze(pred).astype(np.uint8))
-        imageio.imsave(os.path.join(args.work_dir, "prediction_cmap", name[0] + ".png"), encode_cmap(np.squeeze(pred)).astype(np.uint8))
-
+            
     return _gts, _preds, _msc_preds, cams, _preds_hist, _msc_preds_hist, _cams_hist
 
 
@@ -202,7 +159,7 @@ def crf_proc(config):
 
         label = None
 
-        if image.ndim == 2:
+        if image.ndim == 2:                             
             image = np.stack([image, image, image], axis=-1)
 
         H, W, _ = image.shape
@@ -212,45 +169,28 @@ def crf_proc(config):
 
         image = image.astype(np.uint8)
         prob = post_processor(image, prob)
-        # fg_conf = prob[1]                              # confidence for your "object" class
+        # fg_conf = prob[1]                              # confidence for your “object” class
         # pred    = np.where(fg_conf > args.bkg_score, 1, 0)
         pred = np.argmax(prob, axis=0)
 
-        return name, pred, label
+        imageio.imsave(os.path.join(args.work_dir, "prediction", name + ".png"), np.squeeze(pred).astype(np.uint8))
+        imageio.imsave(os.path.join(args.work_dir, "prediction_cmap", name + ".png"), encode_cmap(np.squeeze(pred)).astype(np.uint8))
+        return pred, label
 
     # n_jobs = int(multiprocessing.cpu_count() * 0.8)
     n_jobs = 1
-    batch_size = 100
-
-    # Process and save in batches of 100
-    for batch_start in range(0, len(name_list), batch_size):
-        batch_end = min(batch_start + batch_size, len(name_list))
-        batch_indices = list(range(batch_start, batch_end))
-
-        print(f"\nProcessing batch: images {batch_start} to {batch_end-1}")
-
-        results = joblib.Parallel(n_jobs=n_jobs, verbose=10, pre_dispatch="all")(
-            [joblib.delayed(_job)(i) for i in batch_indices]
-        )
-
-        # Save all results from this batch
-        print(f"Saving batch: images {batch_start} to {batch_end-1}")
-        for name, pred, label in results:
-            imageio.imsave(os.path.join(args.work_dir, "prediction", name + ".png"), np.squeeze(pred).astype(np.uint8))
-            imageio.imsave(os.path.join(args.work_dir, "prediction_cmap", name + ".png"), encode_cmap(np.squeeze(pred)).astype(np.uint8))
-
-        print(f"Batch saved successfully!")
+    results = joblib.Parallel(n_jobs=n_jobs, verbose=10, pre_dispatch="all")([joblib.delayed(_job)(i) for i in range(len(name_list))])
 
     # preds, gts = zip(*results)
     # hist = np.zeros((21, 21))
     # hist, score = evaluate.scores(gts, preds, hist, 21)
 
     # print(score)
-
+    
     return True
 
 def main(cfg, model_path):
-
+    
     val_dataset = voc.VOC12SegDataset(
         root_dir=cfg.dataset.root_dir,
         name_list_dir=cfg.dataset.name_list_dir,
@@ -271,16 +211,14 @@ def main(cfg, model_path):
                      dataset_root_path=cfg.dataset.root_dir,
                      clip_flag=cfg.clip_init.clip_flag,
                      device='cuda')
-
+    
     trained_state_dict = torch.load(model_path, map_location="cpu")
 
     model.load_state_dict(state_dict=trained_state_dict, strict=False)
     model.eval()
 
-    # Get images path for CRF processing
-    images_path = os.path.join(cfg.dataset.root_dir, 'JPEGImages')
-
-    gts, preds, msc_preds, cams, preds_hist, msc_preds_hist, cams_hist = validate(model=model, dataset=val_dataset, cfg=cfg, test_scales=[1, 1.25], images_path=images_path) #[1, 0.75] [1, 1.5]
+   
+    gts, preds, msc_preds, cams, preds_hist, msc_preds_hist, cams_hist = validate(model=model, dataset=val_dataset, cfg=cfg, test_scales=[0.5, 1]) #[1, 0.75] [1, 1.5]
     #[0.75, 1.0, 1.25, 1.5]
     torch.cuda.empty_cache()
 
@@ -294,6 +232,8 @@ def main(cfg, model_path):
     print(seg_score)
     print("msc segs score:")
     print(msc_seg_score)
+
+    crf_proc(config=cfg)
 
     return True
 

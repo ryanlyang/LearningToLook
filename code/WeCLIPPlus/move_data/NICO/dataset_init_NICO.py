@@ -78,50 +78,46 @@ def main(src_root: str,
                 print(f"[stage:copy] {i}/{total} ({placed} new)")
         print(f"Placed {placed} images → {jpeg_dir}")
 
-    # Build splits
-    ids = sorted(sid for sid, _, _ in all_items)
-    if split_for_val and 0.0 < split_for_val < 1.0:
-        import random, collections
-        random.seed(1337)
-        by_class = collections.defaultdict(list)
-        for cls, members in images_by_class.items():
-            by_class[cls].extend(sorted(members))
+    # Build per-class splits
+    import random
+    random.seed(1337)
 
-        train_set, val_set = set(), set()
-        for cls, members in by_class.items():
-            random.shuffle(members)
-            k = max(1, int(round(split_for_val * len(members))))
-            val_set.update(members[:k])
-            train_set.update(members[k:])
-        # ensure any ids not seen above end up in train
-        train_set.update([b for b in ids if b not in val_set])
-        train_list = sorted(train_set)
-        val_list   = sorted(val_set)
-    else:
-        # identical lists (OK for wiring/tests; not for real HPO)
-        train_list = ids[:]
-        val_list   = ids[:]
-
-    # Write global split files (VOC-style IDs)
-    with open(os.path.join(imagesets_dir, "train.txt"), "w") as f:
-        f.write("\n".join(train_list) + "\n")
-    with open(os.path.join(imagesets_dir, "val.txt"), "w") as f:
-        f.write("\n".join(val_list) + "\n")
-    print(f"Wrote train.txt ({len(train_list)}) and val.txt ({len(val_list)})")
-
-    # Write per-class label files (VOC Main: "<id> 1|-1")
     class_count = len(images_by_class)
-    for split_name, split_list in [("train", train_list), ("val", val_list)]:
-        print(f"[stage:labels] writing {split_name} for {class_count} classes…")
-        for j, (cls, members) in enumerate(sorted(images_by_class.items()), 1):
-            out_path = os.path.join(imagesets_dir, f"{cls}_{split_name}.txt")
-            with open(out_path, "w") as f:
-                _in = members.__contains__  # local bind for speed
-                f.writelines(f"{b} {'1' if _in(b) else '-1'}\n" for b in split_list)
-            if j % 10 == 0:
-                print(f"  {j}/{class_count}")
+    for cls, members in sorted(images_by_class.items()):
+        # Create per-class directory
+        cls_dir = os.path.join(imagesets_dir, cls)
+        os.makedirs(cls_dir, exist_ok=True)
 
-    print(f"Wrote {class_count} × per-class label files in {imagesets_dir}")
+        members_list = sorted(members)
+
+        # Split per class
+        if split_for_val and 0.0 < split_for_val < 1.0:
+            train_list, val_list = [], []
+            shuffled = members_list[:]
+            random.shuffle(shuffled)
+            k = max(1, int(round(split_for_val * len(shuffled))))
+            val_list = sorted(shuffled[:k])
+            train_list = sorted(shuffled[k:])
+        else:
+            # identical lists (OK for wiring/tests; not for real HPO)
+            train_list = members_list[:]
+            val_list   = members_list[:]
+
+        # Write class-specific train.txt and val.txt (only images of this class)
+        with open(os.path.join(cls_dir, "train.txt"), "w") as f:
+            f.write("\n".join(train_list) + "\n")
+        with open(os.path.join(cls_dir, "val.txt"), "w") as f:
+            f.write("\n".join(val_list) + "\n")
+
+        # Write per-class label files (VOC Main format: "<id> 1|-1")
+        members_set = set(members_list)
+        for split_name, split_list in [("train", train_list), ("val", val_list)]:
+            out_path = os.path.join(cls_dir, f"{cls}_{split_name}.txt")
+            with open(out_path, "w") as f:
+                _in = members_set.__contains__  # local bind for speed
+                f.writelines(f"{b} {'1' if _in(b) else '-1'}\n" for b in split_list)
+
+    print(f"Wrote {class_count} class folders with per-class splits in {imagesets_dir}")
 
 if __name__ == "__main__":
     # Example usage:
