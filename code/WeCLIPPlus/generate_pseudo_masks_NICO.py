@@ -1,6 +1,6 @@
 from scripts import dist_clip_voc
 from move_data import moveImageSets, convert_to_jpg, sort_by_label
-from move_data.NICO import dataset_init_NICO, move_Imgs_NICO, config_dupe
+from move_data.NICO import dataset_init_NICO, config_dupe
 from clip import clip_text
 import test_msc_flip_voc
 import argparse
@@ -41,10 +41,8 @@ def main(setup_data):
         print("Setting up data")
         # moveImageSets.main(set_dir)
 
-        dataset_init_NICO.main(src_img_dir, dev_kit_dir, 
-                               do_copy_images=False, split_for_val=0.0)
-
-        move_Imgs_NICO.main(src_img_dir, dev_kit_dir)
+        dataset_init_NICO.main(src_img_dir, dev_kit_dir,
+                               do_copy_images=True, split_for_val=0.0)
     else:
         print("Skipping Setup")
 

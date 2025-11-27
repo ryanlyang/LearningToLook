@@ -76,15 +76,18 @@ def main(src_root: str,
         if do_copy_images:
             os.makedirs(jpeg_dir, exist_ok=True)
 
-        # Copy images for this class
-        if do_copy_images:
-            placed = 0
-            for sid, src_path, ext in items_by_class[cls]:
-                dst_path = os.path.join(jpeg_dir, sid + ext)
-                if not os.path.exists(dst_path):
+        # Copy/move images for this class
+        placed = 0
+        for sid, src_path, ext in items_by_class[cls]:
+            dst_path = os.path.join(jpeg_dir, sid + ext)
+            if not os.path.exists(dst_path):
+                os.makedirs(jpeg_dir, exist_ok=True)
+                if do_copy_images:
                     shutil.copyfile(src_path, dst_path)
-                    placed += 1
-            print(f"[{cls}] Placed {placed} images → {jpeg_dir}")
+                else:
+                    shutil.move(src_path, dst_path)
+                placed += 1
+        print(f"[{cls}] Placed {placed} images → {jpeg_dir}")
 
         # Build train/val split for this class
         members_list = sorted(images_by_class[cls])

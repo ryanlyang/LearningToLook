@@ -15,6 +15,9 @@ def main(source_config, output_configs_dir, class_name):
         output_configs_dir: Directory where modified configs will be saved
         class_name: The class name (e.g., 'bear', 'car', 'bicycle')
     """
+    # Strip whitespace from class_name
+    class_name = class_name.strip()
+
     # Create output directory if it doesn't exist
     os.makedirs(output_configs_dir, exist_ok=True)
 
