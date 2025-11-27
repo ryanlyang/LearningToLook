@@ -406,9 +406,13 @@ def main(config):
 
     timestamp = "{0:%Y-%m-%d-%H-%M}".format(datetime.datetime.now())
 
-    cfg.work_dir.ckpt_dir = os.path.join(cfg.work_dir.dir, cfg.work_dir.ckpt_dir, timestamp)
+    # Use CLIP_TEXT_VERSION env var to create unique subdirectory if available
+    clip_text_version = os.environ.get('CLIP_TEXT_VERSION', 'default')
+    timestamp_with_version = f"{timestamp}_{clip_text_version}"
+
+    cfg.work_dir.ckpt_dir = os.path.join(cfg.work_dir.dir, cfg.work_dir.ckpt_dir, timestamp_with_version)
     cfg.work_dir.pred_dir = os.path.join(cfg.work_dir.dir, cfg.work_dir.pred_dir)
-    cfg.work_dir.tb_logger_dir = os.path.join(cfg.work_dir.dir, cfg.work_dir.tb_logger_dir, timestamp)
+    cfg.work_dir.tb_logger_dir = os.path.join(cfg.work_dir.dir, cfg.work_dir.tb_logger_dir, timestamp_with_version)
 
     os.makedirs(cfg.work_dir.ckpt_dir, exist_ok=True)
     os.makedirs(cfg.work_dir.pred_dir, exist_ok=True)
