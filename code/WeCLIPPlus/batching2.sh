@@ -12,7 +12,7 @@
 #SBATCH --signal=TERM@120
 
 set -Eeuo pipefail
-mkdir -p /home/ryreu/guided_cnn/logs
+mkdir -p /home/ryreu/guided_cnn/logs2
 
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate learntolook
@@ -27,7 +27,7 @@ export MKL_NUM_THREADS="${SLURM_CPUS_PER_TASK:-1}"
 export NUMEXPR_NUM_THREADS="${SLURM_CPUS_PER_TASK:-1}"
 export PYTHONNOUSERSITE=1
 
-cd /home/ryreu/guided_cnn/code/LearningToLook/code/WeCLIPPlus
+cd /home/ryreu/guided_cnn/code/HaveNicoLearn/LearningToLook/code/WeCLIPPlus
 export PYTHONPATH="$PWD:${PYTHONPATH:-}"
 
 # Sanity print
