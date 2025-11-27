@@ -70,13 +70,15 @@ BACKGROUND_CATEGORY = [
 ]
 
 
+import os
+
 # class_names = ['aeroplane', 'bicycle', 'bird', 'boat', 'bottle',
 #                    'bus', 'car', 'cat', 'chair', 'cow',
 #                    'diningtable', 'dog', 'horse', 'motorbike', 'person',
 #                    'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor',
 #                    ]
 
-class_names = [
+_all_class_names = [
     'airplane', 'butterfly', 'clock', 'dog', 'football', 'gun', 'kangaroo', 'monkey', 'pumpkin', 'seal', 'squirrel', 'train',
     'bear', 'cactus', 'corn', 'dolphin', 'fox', 'hat', 'lifeboat', 'motorcycle', 'rabbit', 'sheep', 'sunflower', 'truck',
     'bicycle', 'car', 'cow', 'elephant', 'frog', 'helicopter', 'lion', 'ostrich', 'racket', 'ship', 'tent', 'umbrella',
@@ -84,19 +86,25 @@ class_names = [
     'bus', 'chair', 'crocodile', 'flower', 'goose', 'hot air balloon', 'mailbox', 'pineapple', 'scooter', 'spider', 'tortoise', 'wolf',
 ]
 
-                   
-# new_class_names = ['aeroplane', 'bicycle', 'bird avian', 'boat', 'bottle',
-#                    'bus', 'car', 'cat', 'chair seat', 'cow',
-#                    'diningtable', 'dog', 'horse', 'motorbike', 'person with clothes,people,human',
-#                    'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor screen',
-#                    ]
-new_class_names = [
+_all_new_class_names = [
     'airplane', 'butterfly', 'clock', 'dog', 'football', 'gun', 'kangaroo', 'monkey', 'pumpkin', 'seal', 'squirrel', 'train',
     'bear', 'cactus', 'corn', 'dolphin', 'fox', 'hat', 'lifeboat', 'motorcycle', 'rabbit', 'sheep', 'sunflower', 'truck',
     'bicycle', 'car', 'cow', 'elephant', 'frog', 'helicopter', 'lion', 'ostrich', 'racket', 'ship', 'tent', 'umbrella',
     'bird', 'cat', 'crab', 'fishing rod', 'giraffe', 'horse', 'lizard', 'owl', 'sailboat', 'shrimp', 'tiger', 'wheat',
     'bus', 'chair', 'crocodile', 'flower', 'goose', 'hot air balloon', 'mailbox', 'pineapple', 'scooter', 'spider', 'tortoise', 'wolf',
 ]
+
+# Check for CLIP_TEXT_VERSION environment variable
+_version = os.environ.get('CLIP_TEXT_VERSION', None)
+
+if _version and _version in _all_class_names:
+    # Filter to single class if version matches a class name
+    class_names = [_version]
+    new_class_names = [_version]
+else:
+    # Use full list if no version specified or version not found
+    class_names = _all_class_names
+    new_class_names = _all_new_class_names
 
 
 

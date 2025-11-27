@@ -1,15 +1,17 @@
 from scripts import dist_clip_voc
 from move_data import moveImageSets, convert_to_jpg, sort_by_label
-from move_data.NICO import dataset_init_NICO, move_Imgs_NICO
+from move_data.NICO import dataset_init_NICO, move_Imgs_NICO, config_dupe
 from clip import clip_text
-import test_voc2
+import test_msc_flip_voc
 import argparse
 import shutil
 import os
 
+
 #fortnite
 
-
+# Get class from CLIP_TEXT_VERSION environment variable, default to 'bear'
+this_class = os.environ.get('CLIP_TEXT_VERSION', 'bear')
 
 # Before running, make sure that the paths to the config file and the src_img_dir are correct. 
 # Make sure that the structure of the src_img_dir is: 
@@ -25,9 +27,9 @@ config = r"/home/ryreu/guided_cnn/code/LearningToLook/code/WeCLIPPlus/configs/vo
 
 src_img_dir = r'/home/ryreu/guided_cnn/code/NICO-plus/data/Unzip_DG_Bench/DG_Benchmark/NICO_DG'
  
-set_dir = r'/home/ryreu/guided_cnn/code/LearningToLook/code/WeCLIPPlus/VOCdevkit/VOC2012/ImageSets/Main'
+set_dir = r'/home/ryreu/guided_cnn/code/LearningToLook/code/WeCLIPPlus/VOCdevkit/VOC2012/' + this_class + r'/ImageSets/Main'
 
-dest_dir = r'/home/ryreu/guided_cnn/code/LearningToLook/code/WeCLIPPlus/VOCdevkit/VOC2012/JPEGImages'
+dest_dir = r'/home/ryreu/guided_cnn/code/LearningToLook/code/WeCLIPPlus/VOCdevkit/VOC2012/' + this_class + r'/JPEGImages'
 
 class_names = clip_text.class_names
 
@@ -35,19 +37,24 @@ def main(setup_data):
     
     if(setup_data):
         print("Setting up data")
-        moveImageSets.main(set_dir)
+        # moveImageSets.main(set_dir)
 
-        dataset_init_NICO.main(src_img_dir, r'/home/ryreu/guided_cnn/code/LearningToLook/code/WeCLIPPlus/VOCdevkit/VOC2012')
+        dataset_init_NICO.main(src_img_dir, r'/home/ryreu/guided_cnn/code/LearningToLook/code/WeCLIPPlus/VOCdevkit', 
+                               do_copy_images=False, split_for_val=0.0)
 
-        move_Imgs_NICO.main(src_img_dir, dest_dir)
+        move_Imgs_NICO.main(src_img_dir, r'/home/ryreu/guided_cnn/code/LearningToLook/code/WeCLIPPlus/VOCdevkit')
     else:
         print("Skipping Setup")
 
+    new_config = config_dupe.main(config, r"/home/ryreu/guided_cnn/code/LearningToLook/code/WeCLIPPlus/configs/NICO_configs", this_class)
+
     #convert_to_jpg.convert_to_jpg(dest_dir, True)
-    # final_path = dist_clip_voc.main(config)
+
+    final_path = dist_clip_voc.main(new_config)
     # final_path = r"/home/ryreu/guided_cnn/code/LearningToLook/code/WeCLIPPlus/work_dir_voc/checkpoints/2025-11-13-12-07/wetr_iter_30000.pth"
     # final_path = r"/workspace/LearningToLook/code/WeCLIPPlus/work_dir_voc/checkpoints/2025-10-19-05-29/wetr_iter_5000.pth"
     # test_voc2.outer_main(final_path)
+    test_msc_flip_voc.outer_main(final_path, config_path=new_config)
 
     # sort_by_label.main(dest_dir)
     # sort_by_label.main(src_img_dir + '/digit/test')

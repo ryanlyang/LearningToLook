@@ -33,23 +33,18 @@ def main(src_root: str,
          do_copy_images: bool = True,
          split_for_val: float = 0.0):
     """
-    Build VOC-style files from NICO++ common domains (sanitized IDs, no spaces).
+    Build per-class VOC-style directories from NICO++ domains.
+    Creates separate VOC2012{class_name} folders for each class.
 
     Args:
         src_root: path to NICO_DG (contains domain folders like autumn/dim/...)
-        out_root: path to VOC root (will create JPEGImages/ and ImageSets/Main/)
+        out_root: parent directory where VOC2012{class} folders will be created
         do_copy_images: if True, copy images into JPEGImages/ with sanitized names
         split_for_val: fraction in (0,1) for per-class val split; 0.0 = duplicate train/val
     """
-    jpeg_dir = os.path.join(out_root, "JPEGImages")
-    imagesets_dir = os.path.join(out_root, "ImageSets", "Main")
-    os.makedirs(imagesets_dir, exist_ok=True)
-    if do_copy_images:
-        os.makedirs(jpeg_dir, exist_ok=True)
-
     # Collect basenames per class and all items
     images_by_class = {}           # class -> set of sanitized IDs
-    all_items = []                 # list of (sanitized_id, src_path, ext)
+    items_by_class = {}            # class -> list of (sanitized_id, src_path, ext)
     domains = sorted(d for d in os.listdir(src_root)
                      if os.path.isdir(os.path.join(src_root, d)))
     print(f"Found environments: {domains}")
@@ -62,35 +57,37 @@ def main(src_root: str,
 
             # *** SANITIZED ID: include BOTH domain and label, no spaces ***
             sid = f"{_safe(dom)}_{_safe(label)}_{_safe(base)}"
+            safe_label = _safe(label)
 
-            images_by_class.setdefault(_safe(label), set()).add(sid)
-            all_items.append((sid, src_path, ext))
+            images_by_class.setdefault(safe_label, set()).add(sid)
+            items_by_class.setdefault(safe_label, []).append((sid, src_path, ext))
 
-    # Optional: copy/rename images to JPEGImages with the sanitized ID
-    if do_copy_images:
-        placed, total = 0, len(all_items)
-        for i, (sid, src_path, ext) in enumerate(all_items, 1):
-            dst_path = os.path.join(jpeg_dir, sid + ext)
-            if not os.path.exists(dst_path):
-                shutil.copyfile(src_path, dst_path)  # faster than copy2
-                placed += 1
-            if i % 1000 == 0:
-                print(f"[stage:copy] {i}/{total} ({placed} new)")
-        print(f"Placed {placed} images → {jpeg_dir}")
-
-    # Build per-class splits
+    # Build per-class VOC2012{class_name} folders
     import random
     random.seed(1337)
 
     class_count = len(images_by_class)
-    for cls, members in sorted(images_by_class.items()):
-        # Create per-class directory
-        cls_dir = os.path.join(imagesets_dir, cls)
-        os.makedirs(cls_dir, exist_ok=True)
+    for cls in sorted(images_by_class.keys()):
+        # Create per-class VOC folder
+        voc_cls_dir = os.path.join(out_root, "VOC2012", cls)
+        jpeg_dir = os.path.join(voc_cls_dir, "JPEGImages")
+        imagesets_dir = os.path.join(voc_cls_dir, "ImageSets", "Main")
+        os.makedirs(imagesets_dir, exist_ok=True)
+        if do_copy_images:
+            os.makedirs(jpeg_dir, exist_ok=True)
 
-        members_list = sorted(members)
+        # Copy images for this class
+        if do_copy_images:
+            placed = 0
+            for sid, src_path, ext in items_by_class[cls]:
+                dst_path = os.path.join(jpeg_dir, sid + ext)
+                if not os.path.exists(dst_path):
+                    shutil.copyfile(src_path, dst_path)
+                    placed += 1
+            print(f"[{cls}] Placed {placed} images → {jpeg_dir}")
 
-        # Split per class
+        # Build train/val split for this class
+        members_list = sorted(images_by_class[cls])
         if split_for_val and 0.0 < split_for_val < 1.0:
             train_list, val_list = [], []
             shuffled = members_list[:]
@@ -104,20 +101,20 @@ def main(src_root: str,
             val_list   = members_list[:]
 
         # Write class-specific train.txt and val.txt (only images of this class)
-        with open(os.path.join(cls_dir, "train.txt"), "w") as f:
+        with open(os.path.join(imagesets_dir, "train.txt"), "w") as f:
             f.write("\n".join(train_list) + "\n")
-        with open(os.path.join(cls_dir, "val.txt"), "w") as f:
+        with open(os.path.join(imagesets_dir, "val.txt"), "w") as f:
             f.write("\n".join(val_list) + "\n")
 
         # Write per-class label files (VOC Main format: "<id> 1|-1")
         members_set = set(members_list)
         for split_name, split_list in [("train", train_list), ("val", val_list)]:
-            out_path = os.path.join(cls_dir, f"{cls}_{split_name}.txt")
+            out_path = os.path.join(imagesets_dir, f"{cls}_{split_name}.txt")
             with open(out_path, "w") as f:
                 _in = members_set.__contains__  # local bind for speed
                 f.writelines(f"{b} {'1' if _in(b) else '-1'}\n" for b in split_list)
 
-    print(f"Wrote {class_count} class folders with per-class splits in {imagesets_dir}")
+    print(f"Wrote {class_count} per-class VOC2012 folders in {out_root}")
 
 if __name__ == "__main__":
     # Example usage:
