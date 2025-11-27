@@ -42,7 +42,7 @@ print("Torch:", getattr(torch,'__version__','missing'),
 PY
 
 # Ensure entrypoint exists
-test -f generate_pseudo_masks_NICO2.py || { echo "Missing generate_pseudo_masks_NICO2.py" >&2; exit 2; }
+test -f generate_pseudo_masks_NICO.py || { echo "Missing generate_pseudo_masks_NICO.py" >&2; exit 2; }
 
 # Run (no --num_workers since the script doesn't accept it)
-srun --unbuffered env CLIP_TEXT_VERSION=butterfly python -u generate_pseudo_masks_NICO2.py
+srun --unbuffered env CLIP_TEXT_VERSION=butterfly python -u generate_pseudo_masks_NICO.py

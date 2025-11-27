@@ -78,7 +78,7 @@ if __name__ == '__main__':
                         help='Run data setup steps (move ImageSets, init dataset, move images).')
     parser.add_argument('--no-setup-data', dest='setup_data', action='store_false',
                         help='Skip data setup steps.')
-    parser.set_defaults(setup_data=True)  # default = skip
+    parser.set_defaults(setup_data=False)  # default = skip
     args = parser.parse_args()
 
     main(args.setup_data)
