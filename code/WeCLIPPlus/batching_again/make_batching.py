@@ -42,8 +42,8 @@ BATCHING_TEMPLATE = """#!/bin/bash -l
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=24
 #SBATCH --mem=32G
-#SBATCH --output=/home/ryreu/guided_cnn/logs2/%x_%j.out
-#SBATCH --error=/home/ryreu/guided_cnn/logs2/%x_%j.err
+#SBATCH --output=/home/ryreu/guided_cnn/logsSwitch/%x_%j.out
+#SBATCH --error=/home/ryreu/guided_cnn/logsSwitch/%x_%j.err
 #SBATCH --signal=TERM@120
 
 set -Eeuo pipefail
