@@ -76,6 +76,12 @@ print("Torch:", getattr(torch,'__version__','missing'),
       "CUDA available:", torch.cuda.is_available() if hasattr(torch,'cuda') else 'n/a')
 PY
 
+# Install open_clip if not present
+python -c "import open_clip" 2>/dev/null || {{
+  echo "Installing open_clip_torch..."
+  pip install -q open_clip_torch
+}}
+
 # Ensure entrypoint exists
 test -f generate_pseudo_masks_NICO.py || {{ echo "Missing generate_pseudo_masks_NICO.py" >&2; exit 2; }}
 
