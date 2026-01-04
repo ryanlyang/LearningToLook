@@ -46,9 +46,9 @@ clip_init:
 
 #-----------------dino-------------------------
 #use_dino: True
+# Using DINOv1 ViT-Small with patch size 16
 dino_init:
-  #dino_pretrain_path: 'C:/Users/ryreu/…/pretrained/dino_vits16_pretrain.pth'
-  dino_model: 'dinov2_vits14'
+  dino_model: 'dino_vits16'
   dino_fts_fuse_dim: 384
   decoder_layer: 3
 

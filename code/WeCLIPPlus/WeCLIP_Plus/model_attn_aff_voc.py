@@ -22,6 +22,15 @@ from pretrained.facebookDinov2.hubconf import (
     dinov2_vitl14_reg,
 )
 
+# Import DINOv1 models
+from pretrained.dinov1_loader import (
+    dino_vits16,
+    dino_vits8,
+    dino_vitb16,
+    dino_vitb8,
+    dino_resnet50,
+)
+
 def Normalize_clip():
     return Compose([
     Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))])
@@ -84,6 +93,7 @@ class WeCLIP_Plus(nn.Module):
             print(name, param.requires_grad)
 
 
+        # DINOv2 models (patch size 14)
         if   dino_model == "dinov2_vits14":
             self.dino_encoder = dinov2_vits14(pretrained=True)
         elif dino_model == "dinov2_vitb14":
@@ -96,8 +106,19 @@ class WeCLIP_Plus(nn.Module):
             self.dino_encoder = dinov2_vitb14_reg(pretrained=True)
         elif dino_model == "dinov2_vitl14_reg":
             self.dino_encoder = dinov2_vitl14_reg(pretrained=True)
+        # DINOv1 models (patch sizes 8 or 16)
+        elif dino_model == "dino_vits16":
+            self.dino_encoder = dino_vits16(pretrained=True)
+        elif dino_model == "dino_vits8":
+            self.dino_encoder = dino_vits8(pretrained=True)
+        elif dino_model == "dino_vitb16":
+            self.dino_encoder = dino_vitb16(pretrained=True)
+        elif dino_model == "dino_vitb8":
+            self.dino_encoder = dino_vitb8(pretrained=True)
+        elif dino_model == "dino_resnet50":
+            self.dino_encoder = dino_resnet50(pretrained=True)
         else:
-            raise ValueError(f"Unknown DINO model: {dino_model}")
+            raise ValueError(f"Unknown DINO model: {dino_model}. Available models: dinov2_vits14, dinov2_vitb14, dinov2_vitl14, dinov2_vits14_reg, dinov2_vitb14_reg, dinov2_vitl14_reg, dino_vits16, dino_vits8, dino_vitb16, dino_vitb8, dino_resnet50")
 
 
         for name, param in self.dino_encoder.named_parameters():
