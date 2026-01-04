@@ -23,15 +23,15 @@ this_class = os.environ.get('CLIP_TEXT_VERSION', 'bear')
 # Make sure you have edited the correct file paths in configs/voc_attn_reg.yaml
 
 
-config = r"/home/ryreu/guided_cnn/code/HaveNicoLearn/LearningToLook/code/WeCLIPPlus/configs/voc_attn_reg.yaml"
+config = r"/home/ryreu/guided_cnn/code/SwitchCLIP/LearningToLook/code/WeCLIPPlus/configs/voc_attn_reg.yaml"
 
 src_img_dir = r'/home/ryreu/guided_cnn/code/NICO-plus/data/Unzip_DG_Bench/DG_Benchmark/NICO_DG'
  
-set_dir = r'/home/ryreu/guided_cnn/code/HaveNicoLearn/LearningToLook/code/WeCLIPPlus/VOCdevkit/VOC2012/' + this_class + r'/ImageSets/Main'
+set_dir = r'/home/ryreu/guided_cnn/code/SwitchCLIP/LearningToLook/code/WeCLIPPlus/VOCdevkit/VOC2012/' + this_class + r'/ImageSets/Main'
 
-dest_dir = r'/home/ryreu/guided_cnn/code/HaveNicoLearn/LearningToLook/code/WeCLIPPlus/VOCdevkit/VOC2012/' + this_class + r'/JPEGImages'
+dest_dir = r'/home/ryreu/guided_cnn/code/SwitchCLIP/LearningToLook/code/WeCLIPPlus/VOCdevkit/VOC2012/' + this_class + r'/JPEGImages'
 
-dev_kit_dir = r'/home/ryreu/guided_cnn/code/HaveNicoLearn/LearningToLook/code/WeCLIPPlus/VOCdevkit'
+dev_kit_dir = r'/home/ryreu/guided_cnn/code/SwitchCLIP/LearningToLook/code/WeCLIPPlus/VOCdevkit'
 
 class_names = clip_text.class_names
 
@@ -46,7 +46,7 @@ def main(setup_data):
     else:
         print("Skipping Setup")
 
-    new_config = config_dupe.main(config, r"/home/ryreu/guided_cnn/code/HaveNicoLearn/LearningToLook/code/WeCLIPPlus/configs/NICO_configs", this_class)
+    new_config = config_dupe.main(config, r"/home/ryreu/guided_cnn/code/SwitchCLIP/LearningToLook/code/WeCLIPPlus/configs/NICO_configs", this_class)
 
     #convert_to_jpg.convert_to_jpg(dest_dir, True)
 
@@ -78,10 +78,13 @@ if __name__ == '__main__':
                         help='Run data setup steps (move ImageSets, init dataset, move images).')
     parser.add_argument('--no-setup-data', dest='setup_data', action='store_false',
                         help='Skip data setup steps.')
-    parser.set_defaults(setup_data=False)  # default = skip
+    parser.set_defaults(setup_data=True)  # default = skip
     args = parser.parse_args()
 
-    main(args.setup_data)
+    dataset_init_NICO.main(src_img_dir, dev_kit_dir,
+                               do_copy_images=True, split_for_val=0.0)
+
+    # main(args.setup_data)
 
 
 # After this is done you can run python run_guided_CNN.py to train the model.
