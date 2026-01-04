@@ -45,4 +45,4 @@ PY
 test -f generate_pseudo_masks_NICO.py || { echo "Missing generate_pseudo_masks_NICO.py" >&2; exit 2; }
 
 # Run (no --num_workers since the script doesn't accept it)
-srun --unbuffered env CLIP_TEXT_VERSION=clock python -u generate_pseudo_masks_NICO.py
+srun --unbuffered env CLIP_TEXT_VERSION=elephant python -u generate_pseudo_masks_NICO.py
