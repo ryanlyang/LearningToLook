@@ -43,3 +43,4 @@ ttach>=0.0.3
 lxml>=4.9.0
 tensorflow
 colour
+open_clip_torch
