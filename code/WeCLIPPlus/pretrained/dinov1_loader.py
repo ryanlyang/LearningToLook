@@ -84,6 +84,11 @@ def load_dinov1_model(model_name, pretrained=True):
                 dynamic_img_size=True  # Allow variable input sizes
             )
 
+            # Disable strict size checking in patch embedding to match original DINO behavior
+            if hasattr(model, 'patch_embed') and hasattr(model.patch_embed, 'strict_img_size'):
+                model.patch_embed.strict_img_size = False
+                print(f"Disabled strict image size checking", file=sys.stderr, flush=True)
+
             # Verify model has expected methods
             if not hasattr(model, 'forward_features'):
                 print(f"Warning: timm model lacks forward_features method, falling back to torch.hub", file=sys.stderr, flush=True)
