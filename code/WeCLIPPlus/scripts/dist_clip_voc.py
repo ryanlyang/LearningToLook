@@ -385,13 +385,13 @@ def train(cfg):
         #     logging.info(seg_score)
 
         #Validation Commented Out
-        if (n_iter + 1) % 10000 == 0 or (n_iter+1 == cfg.train.max_iters):
+        # Only save the final model checkpoint
+        if n_iter+1 == cfg.train.max_iters:
             ckpt_path = os.path.join(
                 cfg.work_dir.ckpt_dir,
                 f"wetr_iter_{n_iter+1}.pth"
             )
-            if n_iter + 1 == cfg.train.max_iters:
-                last_path = ckpt_path
+            last_path = ckpt_path
             torch.save(model.state_dict(), ckpt_path)
 
     return last_path
