@@ -96,6 +96,10 @@ _all_new_class_names = [
 
 # Check for CLIP_TEXT_VERSION environment variable
 _version = os.environ.get('CLIP_TEXT_VERSION', None)
+if _version:
+    # Convert underscores to spaces for class name lookup
+    # (directory names use underscores, but class definitions use spaces)
+    _version = _version.replace('_', ' ')
 
 if _version and _version in _all_class_names:
     # Filter to single class if version matches a class name

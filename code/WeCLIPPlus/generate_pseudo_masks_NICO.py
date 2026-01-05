@@ -11,8 +11,8 @@ import os
 #fortnite
 
 # Get class from CLIP_TEXT_VERSION environment variable, default to 'bear'
-# Replace underscores with spaces for multi-word classes (e.g., 'hot_air_balloon' -> 'hot air balloon')
-this_class = os.environ.get('CLIP_TEXT_VERSION', 'bear').replace('_', ' ')
+# Keep underscores as-is because directory structure uses underscores
+this_class = os.environ.get('CLIP_TEXT_VERSION', 'bear')
 
 # Before running, make sure that the paths to the config file and the src_img_dir are correct. 
 # Make sure that the structure of the src_img_dir is: 
