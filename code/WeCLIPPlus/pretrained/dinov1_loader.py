@@ -12,6 +12,7 @@ import torch
 import torch.hub
 import os
 import shutil
+import time
 
 # Available DINOv1 models from Facebook Research
 DINOV1_MODELS = {
@@ -62,11 +63,22 @@ def load_dinov1_model(model_name, pretrained=True):
     cache_dir = os.path.join(torch.hub.get_dir(), 'facebookresearch_dino_main')
     if os.path.exists(cache_dir):
         print(f"Clearing cached DINO repository at {cache_dir}")
-        shutil.rmtree(cache_dir)
+        try:
+            shutil.rmtree(cache_dir)
+            print("Cache cleared successfully")
+            # Give filesystem a moment to sync
+            time.sleep(0.5)
+        except Exception as e:
+            print(f"Warning: Could not clear cache: {e}")
 
-    # Load from torch.hub (Facebook Research DINO repository)
-    model = torch.hub.load('facebookresearch/dino:main', model_name, pretrained=pretrained,
-                          trust_repo=True)
+    # Load from torch.hub with force_reload to ensure fresh download
+    # This bypasses any lingering cache issues
+    print("Loading model with force_reload=True...")
+    model = torch.hub.load('facebookresearch/dino:main', model_name,
+                          pretrained=pretrained,
+                          trust_repo=True,
+                          force_reload=True,
+                          skip_validation=True)
 
     return model
 
