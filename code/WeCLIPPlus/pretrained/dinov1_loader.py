@@ -57,7 +57,9 @@ def load_dinov1_model(model_name, pretrained=True):
     print(f"Loading DINOv1 model: {model_name}")
 
     # Load from torch.hub (Facebook Research DINO repository)
-    model = torch.hub.load('facebookresearch/dino:main', model_name, pretrained=pretrained)
+    # Use source='github' to avoid cached import conflicts
+    model = torch.hub.load('facebookresearch/dino:main', model_name, pretrained=pretrained,
+                          source='github', trust_repo=True)
 
     return model
 

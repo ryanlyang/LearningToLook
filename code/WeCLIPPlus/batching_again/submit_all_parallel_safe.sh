@@ -59,12 +59,12 @@ cat > "$TEMPLATE_FILE" <<'TEMPLATE'
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=24
 #SBATCH --mem=32G
-#SBATCH --output=/home/ryreu/guided_cnn/logsSwitch/CLASS_NAME_%j.out
-#SBATCH --error=/home/ryreu/guided_cnn/logsSwitch/CLASS_NAME_%j.err
+#SBATCH --output=/home/ryreu/guided_cnn/logsDINO/CLASS_NAME_%j.out
+#SBATCH --error=/home/ryreu/guided_cnn/logsDINO/CLASS_NAME_%j.err
 #SBATCH --signal=TERM@120
 
 set -Eeuo pipefail
-mkdir -p /home/ryreu/guided_cnn/logsSwitch
+mkdir -p /home/ryreu/guided_cnn/logsDINO
 
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate learntolook
@@ -156,6 +156,6 @@ echo ""
 echo "Monitor with: squeue --me"
 echo "Cancel all with: scancel ${JOB_IDS[@]}"
 echo ""
-echo "Logs will be in: /home/ryreu/guided_cnn/logsSwitch/"
+echo "Logs will be in: /home/ryreu/guided_cnn/logsDINO/"
 echo "  Format: <class_name>_<jobid>.out"
 echo "========================================"
