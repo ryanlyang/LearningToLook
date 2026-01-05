@@ -89,8 +89,8 @@ python -c "import open_clip" 2>/dev/null || {
 }
 
 python -c "import timm" 2>/dev/null || {
-  echo "Installing timm..."
-  pip install -q timm
+  echo "Installing timm (latest version)..."
+  pip install -q --upgrade timm
 }
 
 # Fix DINOv1 cache issue (only delete if exists)
