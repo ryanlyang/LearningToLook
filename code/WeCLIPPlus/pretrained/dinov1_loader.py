@@ -60,12 +60,13 @@ def load_dinov1_model(model_name, pretrained=True):
         available = ', '.join(DINOV1_MODELS.keys())
         raise ValueError(f"Unknown DINOv1 model: {model_name}. Available models: {available}")
 
-    print(f"Loading DINOv1 model: {model_name}")
+    import sys
+    print(f"Loading DINOv1 model: {model_name}", file=sys.stderr, flush=True)
 
     # Try to import timm's vision transformer as a fallback
     try:
         import timm
-        print(f"Using timm to load DINO model")
+        print(f"Using timm to load DINO model", file=sys.stderr, flush=True)
 
         # Map DINO model names to timm equivalents
         timm_name_map = {
@@ -76,37 +77,37 @@ def load_dinov1_model(model_name, pretrained=True):
         }
 
         if model_name in timm_name_map:
-            print(f"Creating timm model: {timm_name_map[model_name]}")
+            print(f"Creating timm model: {timm_name_map[model_name]}", file=sys.stderr, flush=True)
             model = timm.create_model(timm_name_map[model_name], pretrained=pretrained)
 
             # Verify model has expected methods
             if not hasattr(model, 'forward_features'):
-                print(f"Warning: timm model lacks forward_features method, falling back to torch.hub")
+                print(f"Warning: timm model lacks forward_features method, falling back to torch.hub", file=sys.stderr, flush=True)
                 raise AttributeError("Model missing forward_features")
 
-            print(f"Successfully loaded {model_name} via timm with forward_features method")
+            print(f"Successfully loaded {model_name} via timm with forward_features method", file=sys.stderr, flush=True)
             return model
         else:
-            print(f"Warning: {model_name} not available in timm, falling back to torch.hub")
+            print(f"Warning: {model_name} not available in timm, falling back to torch.hub", file=sys.stderr, flush=True)
     except ImportError as e:
-        print(f"timm not available: {e}, falling back to torch.hub")
+        print(f"timm not available: {e}, falling back to torch.hub", file=sys.stderr, flush=True)
     except Exception as e:
-        print(f"Error loading via timm: {type(e).__name__}: {e}")
-        print("Falling back to torch.hub")
+        print(f"Error loading via timm: {type(e).__name__}: {e}", file=sys.stderr, flush=True)
+        print("Falling back to torch.hub", file=sys.stderr, flush=True)
 
     # Fallback to torch.hub if timm fails
     # Clear the cached DINO repo to avoid import conflicts
     cache_dir = os.path.join(torch.hub.get_dir(), 'facebookresearch_dino_main')
     if os.path.exists(cache_dir):
-        print(f"Clearing cached DINO repository at {cache_dir}")
+        print(f"Clearing cached DINO repository at {cache_dir}", file=sys.stderr, flush=True)
         try:
             shutil.rmtree(cache_dir)
-            print("Cache cleared successfully")
+            print("Cache cleared successfully", file=sys.stderr, flush=True)
             time.sleep(0.5)
         except Exception as e:
-            print(f"Warning: Could not clear cache: {e}")
+            print(f"Warning: Could not clear cache: {e}", file=sys.stderr, flush=True)
 
-    print("Loading model with torch.hub (force_reload=True)...")
+    print("Loading model with torch.hub (force_reload=True)...", file=sys.stderr, flush=True)
     model = torch.hub.load('facebookresearch/dino:main', model_name,
                           pretrained=pretrained,
                           trust_repo=True,
