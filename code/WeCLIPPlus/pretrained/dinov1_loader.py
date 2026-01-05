@@ -78,7 +78,11 @@ def load_dinov1_model(model_name, pretrained=True):
 
         if model_name in timm_name_map:
             print(f"Creating timm model: {timm_name_map[model_name]}", file=sys.stderr, flush=True)
-            model = timm.create_model(timm_name_map[model_name], pretrained=pretrained)
+            model = timm.create_model(
+                timm_name_map[model_name],
+                pretrained=pretrained,
+                dynamic_img_size=True  # Allow variable input sizes
+            )
 
             # Verify model has expected methods
             if not hasattr(model, 'forward_features'):
