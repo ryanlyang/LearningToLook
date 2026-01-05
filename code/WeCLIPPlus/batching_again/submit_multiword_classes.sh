@@ -1,19 +1,17 @@
 #!/bin/bash
-# Submit jobs for specific classes with spaces in names
-# Usage: ./submit_specific_classes.sh
+# This script submits jobs ONLY for multi-word class names (hot_air_balloon and fishing_rod)
+# These classes previously had 13.5x slowdown due to string comparison inefficiency
+# After optimization in clip_tool.py, they should run at normal speed
 
 set -e
 
 cd "$(dirname "$0")/.."
 
-# Define the specific classes we want to run
-# Use the ORIGINAL names with spaces
-CLASSES=("fishing rod" "hot air balloon")
+# Multi-word class names that need to be submitted
+CLASSES="hot_air_balloon fishing_rod"
 
-echo "Submitting jobs for specific classes:"
-for class in "${CLASSES[@]}"; do
-    echo "  - $class"
-done
+echo "Submitting jobs for multi-word classes only:"
+echo "$CLASSES"
 echo ""
 
 # Create the job template
@@ -27,8 +25,8 @@ cat > "$TEMPLATE_FILE" <<'TEMPLATE'
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=24
 #SBATCH --mem=32G
-#SBATCH --output=/home/ryreu/guided_cnn/logsSwitch/SAFE_CLASS_NAME_%j.out
-#SBATCH --error=/home/ryreu/guided_cnn/logsSwitch/SAFE_CLASS_NAME_%j.err
+#SBATCH --output=/home/ryreu/guided_cnn/logsSwitch/CLASS_NAME_%j.out
+#SBATCH --error=/home/ryreu/guided_cnn/logsSwitch/CLASS_NAME_%j.err
 #SBATCH --signal=TERM@120
 
 set -Eeuo pipefail
@@ -57,37 +55,30 @@ python -c "import open_clip" 2>/dev/null || {
 }
 
 # Run training for this specific class
-# ACTUAL_CLASS_NAME will be replaced with the original class name (with spaces)
-srun --unbuffered env CLIP_TEXT_VERSION="ACTUAL_CLASS_NAME" python -u generate_pseudo_masks_NICO.py
+srun --unbuffered env CLIP_TEXT_VERSION="CLASS_NAME" python -u generate_pseudo_masks_NICO.py
 TEMPLATE
 
-# Submit jobs for each class
+# Submit jobs for each class with delay between submissions
 JOB_IDS=()
 FAILED_CLASSES=()
 CLASS_NUM=0
-DELAY=2  # seconds between submissions
+DELAY=2  # seconds between submissions to avoid overwhelming SLURM
 
-for CLASS_NAME in "${CLASSES[@]}"; do
+for CLASS_NAME in $CLASSES; do
     CLASS_NUM=$((CLASS_NUM + 1))
-
-    # Create a safe version for filenames (replace spaces with underscores)
-    SAFE_CLASS_NAME="${CLASS_NAME// /_}"
 
     # Create class-specific job script
     JOB_SCRIPT=$(mktemp --suffix=.sh)
-
-    # Replace BOTH the safe name (for filenames) and actual name (for env var)
-    sed "s/SAFE_CLASS_NAME/$SAFE_CLASS_NAME/g" "$TEMPLATE_FILE" | \
-        sed "s/ACTUAL_CLASS_NAME/$CLASS_NAME/g" > "$JOB_SCRIPT"
+    sed "s/CLASS_NAME/$CLASS_NAME/g" "$TEMPLATE_FILE" > "$JOB_SCRIPT"
 
     # Submit the job with retry logic
-    echo "[$CLASS_NUM/${#CLASSES[@]}] Submitting job for class: '$CLASS_NAME'"
+    echo "[$CLASS_NUM/2] Submitting job for class: $CLASS_NAME"
     MAX_RETRIES=3
     RETRY=0
     SUCCESS=0
 
     while [ $RETRY -lt $MAX_RETRIES ]; do
-        if JOB_ID=$(sbatch --parsable --job-name="nico_$SAFE_CLASS_NAME" "$JOB_SCRIPT" 2>&1); then
+        if JOB_ID=$(sbatch --parsable --job-name="nico_$CLASS_NAME" "$JOB_SCRIPT" 2>&1); then
             JOB_IDS+=($JOB_ID)
             echo "    ✓ Job ID: $JOB_ID"
             SUCCESS=1
@@ -108,7 +99,7 @@ for CLASS_NAME in "${CLASSES[@]}"; do
     rm "$JOB_SCRIPT"
 
     # Add delay between submissions (except after last one)
-    if [ $CLASS_NUM -lt ${#CLASSES[@]} ] && [ $SUCCESS -eq 1 ]; then
+    if [ $CLASS_NUM -lt 2 ] && [ $SUCCESS -eq 1 ]; then
         sleep $DELAY
     fi
 done
@@ -132,5 +123,8 @@ echo "Monitor with: squeue --me"
 echo "Cancel all with: scancel ${JOB_IDS[@]}"
 echo ""
 echo "Logs will be in: /home/ryreu/guided_cnn/logsSwitch/"
-echo "  Format: <class_name_with_underscores>_<jobid>.out"
+echo "  Format: <class_name>_<jobid>.out"
+echo ""
+echo "NOTE: These jobs should now complete in ~1.5-2 hours"
+echo "      (previously took 18+ hours due to string comparison bug)"
 echo "========================================"

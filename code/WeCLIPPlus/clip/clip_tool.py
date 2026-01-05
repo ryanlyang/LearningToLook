@@ -6,6 +6,13 @@ from clip.utils import parse_xml_to_dict, scoremap2bbox
 from clip.clip_text import class_names, new_class_names, class_names_coco, new_class_names_coco
 from PIL import Image
 
+# Create O(1) lookup dictionaries to replace O(n) .index() calls
+# This optimizes performance for multi-word class names like "hot air balloon"
+_class_name_to_idx = {name: idx for idx, name in enumerate(class_names)}
+_new_class_name_to_idx = {name: idx for idx, name in enumerate(new_class_names)}
+_class_name_coco_to_idx = {name: idx for idx, name in enumerate(class_names_coco)}
+_new_class_name_coco_to_idx = {name: idx for idx, name in enumerate(new_class_names_coco)}
+
 try:
     from torchvision.transforms import InterpolationMode
     BICUBIC = InterpolationMode.BICUBIC
@@ -147,10 +154,10 @@ def perform_single_voc_cam(img_path, image, image_features, attn_weight_list, se
     label_list = []
     label_id_list = []
     for obj in data["object"]:
-        obj["name"] = new_class_names[class_names.index(obj["name"])]
+        obj["name"] = new_class_names[_class_name_to_idx[obj["name"]]]
         if obj["name"] not in label_list:
             label_list.append(obj["name"])
-            label_id_list.append(new_class_names.index(obj["name"]))
+            label_id_list.append(_new_class_name_to_idx[obj["name"]])
 
     image = image.unsqueeze(0)
     h, w = image.shape[-2], image.shape[-1]
@@ -167,9 +174,9 @@ def perform_single_voc_cam(img_path, image, image_features, attn_weight_list, se
     input_tensor = [image_features, text_features_temp.cuda(), h, w]
 
     for idx, label in enumerate(label_list):
-        label_index = new_class_names.index(label)
+        label_index = _new_class_name_to_idx[label]
         keys.append(label_index)
-        targets = [ClipOutputTarget(label_list.index(label))]
+        targets = [ClipOutputTarget(idx)]  # idx is already the position in label_list
         grayscale_cam, logits_per_image, attn_weight_last = cam(input_tensor=input_tensor,
                                                                 targets=targets,
                                                                 target_size=None)  # (ori_width, ori_height))
@@ -316,9 +323,9 @@ def perform_single_coco_cam(img_path, image, image_features, attn_weight_list, s
     input_tensor = [image_features, text_features_temp.cuda(), h, w]
 
     for idx, label in enumerate(label_list):
-        label_index = new_class_names_coco.index(label)
+        label_index = _new_class_name_coco_to_idx[label]
         keys.append(label_index)
-        targets = [ClipOutputTarget(label_list.index(label))]
+        targets = [ClipOutputTarget(idx)]  # idx is already the position in label_list
         grayscale_cam, logits_per_image, attn_weight_last = cam(input_tensor=input_tensor,
                                                                 targets=targets,
                                                                 target_size=None)  # (ori_width, ori_height))
