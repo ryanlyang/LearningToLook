@@ -10,6 +10,8 @@ DINOv2 is the improved version with better performance.
 
 import torch
 import torch.hub
+import os
+import shutil
 
 # Available DINOv1 models from Facebook Research
 DINOV1_MODELS = {
@@ -56,10 +58,15 @@ def load_dinov1_model(model_name, pretrained=True):
 
     print(f"Loading DINOv1 model: {model_name}")
 
+    # Clear the cached DINO repo to avoid import conflicts
+    cache_dir = os.path.join(torch.hub.get_dir(), 'facebookresearch_dino_main')
+    if os.path.exists(cache_dir):
+        print(f"Clearing cached DINO repository at {cache_dir}")
+        shutil.rmtree(cache_dir)
+
     # Load from torch.hub (Facebook Research DINO repository)
-    # Use source='github' to avoid cached import conflicts
     model = torch.hub.load('facebookresearch/dino:main', model_name, pretrained=pretrained,
-                          source='github', trust_repo=True)
+                          trust_repo=True)
 
     return model
 
