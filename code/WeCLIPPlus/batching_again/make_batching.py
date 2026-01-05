@@ -62,7 +62,7 @@ export MKL_NUM_THREADS="${{SLURM_CPUS_PER_TASK:-1}}"
 export NUMEXPR_NUM_THREADS="${{SLURM_CPUS_PER_TASK:-1}}"
 export PYTHONNOUSERSITE=1
 
-cd /home/ryreu/guided_cnn/code/SwitchCLIP/LearningToLook/code/WeCLIPPlus
+cd /home/ryreu/guided_cnn/code/SwitchDINO/LearningToLook/code/WeCLIPPlus
 export PYTHONPATH="$PWD:${{PYTHONPATH:-}}"
 
 # Sanity print

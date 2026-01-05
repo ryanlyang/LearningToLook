@@ -23,15 +23,15 @@ this_class = os.environ.get('CLIP_TEXT_VERSION', 'bear')
 # Make sure you have edited the correct file paths in configs/voc_attn_reg.yaml
 
 
-config = r"/home/ryreu/guided_cnn/code/SwitchCLIP/LearningToLook/code/WeCLIPPlus/configs/voc_attn_reg.yaml"
+config = r"/home/ryreu/guided_cnn/code/SwitchDINO/LearningToLook/code/WeCLIPPlus/configs/voc_attn_reg.yaml"
 
 src_img_dir = r'/home/ryreu/guided_cnn/code/NICO-plus/data/Unzip_DG_Bench/DG_Benchmark/NICO_DG'
  
-set_dir = r'/home/ryreu/guided_cnn/code/SwitchCLIP/LearningToLook/code/WeCLIPPlus/VOCdevkit/VOC2012/' + this_class + r'/ImageSets/Main'
+set_dir = r'/home/ryreu/guided_cnn/code/SwitchDINO/LearningToLook/code/WeCLIPPlus/VOCdevkit/VOC2012/' + this_class + r'/ImageSets/Main'
 
-dest_dir = r'/home/ryreu/guided_cnn/code/SwitchCLIP/LearningToLook/code/WeCLIPPlus/VOCdevkit/VOC2012/' + this_class + r'/JPEGImages'
+dest_dir = r'/home/ryreu/guided_cnn/code/SwitchDINO/LearningToLook/code/WeCLIPPlus/VOCdevkit/VOC2012/' + this_class + r'/JPEGImages'
 
-dev_kit_dir = r'/home/ryreu/guided_cnn/code/SwitchCLIP/LearningToLook/code/WeCLIPPlus/VOCdevkit'
+dev_kit_dir = r'/home/ryreu/guided_cnn/code/SwitchDINO/LearningToLook/code/WeCLIPPlus/VOCdevkit'
 
 class_names = clip_text.class_names
 
@@ -46,7 +46,7 @@ def main(setup_data):
     else:
         print("Skipping Setup")
 
-    new_config = config_dupe.main(config, r"/home/ryreu/guided_cnn/code/SwitchCLIP/LearningToLook/code/WeCLIPPlus/configs/NICO_configs", this_class)
+    new_config = config_dupe.main(config, r"/home/ryreu/guided_cnn/code/SwitchDINO/LearningToLook/code/WeCLIPPlus/configs/NICO_configs", this_class)
 
     #convert_to_jpg.convert_to_jpg(dest_dir, True)
 
