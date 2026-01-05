@@ -82,11 +82,23 @@ export PYTHONPATH="$PWD:${PYTHONPATH:-}"
 echo "[$(date)] Host: $(hostname)"
 which python
 
-# Install open_clip if not present
+# Install required packages
 python -c "import open_clip" 2>/dev/null || {
   echo "Installing open_clip_torch..."
   pip install -q open_clip_torch
 }
+
+python -c "import timm" 2>/dev/null || {
+  echo "Installing timm..."
+  pip install -q timm
+}
+
+# Fix DINOv1 cache issue (only delete if exists)
+CACHE_DIR="$HOME/.cache/torch/hub/facebookresearch_dino_main"
+if [ -d "$CACHE_DIR" ]; then
+    echo "Removing corrupted DINOv1 cache..."
+    rm -rf "$CACHE_DIR"
+fi
 
 # Run training for this specific class
 srun --unbuffered env CLIP_TEXT_VERSION="CLASS_NAME" python -u generate_pseudo_masks_NICO.py

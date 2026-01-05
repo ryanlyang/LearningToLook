@@ -29,11 +29,24 @@ export PYTHONPATH="$PWD:${PYTHONPATH:-}"
 echo "[$(date)] Host: $(hostname)"
 which python
 
-# Install open_clip if not present
+# Install required packages
 python -c "import open_clip" 2>/dev/null || {
   echo "Installing open_clip_torch..."
   pip install -q open_clip_torch
 }
+
+python -c "import timm" 2>/dev/null || {
+  echo "Installing timm..."
+  pip install -q timm
+}
+
+# Fix DINOv1 cache issue
+echo "Cleaning DINOv1 cache..."
+CACHE_DIR="$HOME/.cache/torch/hub/facebookresearch_dino_main"
+if [ -d "$CACHE_DIR" ]; then
+    echo "Removing corrupted cache at $CACHE_DIR"
+    rm -rf "$CACHE_DIR"
+fi
 
 # Test with a single class (bear)
 echo "Testing with class: bear"
