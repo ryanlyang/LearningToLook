@@ -76,15 +76,23 @@ def load_dinov1_model(model_name, pretrained=True):
         }
 
         if model_name in timm_name_map:
+            print(f"Creating timm model: {timm_name_map[model_name]}")
             model = timm.create_model(timm_name_map[model_name], pretrained=pretrained)
-            print(f"Successfully loaded {model_name} via timm")
+
+            # Verify model has expected methods
+            if not hasattr(model, 'forward_features'):
+                print(f"Warning: timm model lacks forward_features method, falling back to torch.hub")
+                raise AttributeError("Model missing forward_features")
+
+            print(f"Successfully loaded {model_name} via timm with forward_features method")
             return model
         else:
             print(f"Warning: {model_name} not available in timm, falling back to torch.hub")
-    except ImportError:
-        print("timm not available, falling back to torch.hub")
+    except ImportError as e:
+        print(f"timm not available: {e}, falling back to torch.hub")
     except Exception as e:
-        print(f"Error loading via timm: {e}, falling back to torch.hub")
+        print(f"Error loading via timm: {type(e).__name__}: {e}")
+        print("Falling back to torch.hub")
 
     # Fallback to torch.hub if timm fails
     # Clear the cached DINO repo to avoid import conflicts
