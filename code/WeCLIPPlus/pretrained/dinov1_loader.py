@@ -44,7 +44,10 @@ DINOV1_PATCH_SIZES = {
 
 def load_dinov1_model(model_name, pretrained=True):
     """
-    Load a DINOv1 model from torch.hub
+    Load a DINOv1 model by downloading weights directly
+
+    This avoids torch.hub import conflicts by loading weights into a model
+    we construct ourselves.
 
     Args:
         model_name: Name of the DINO model (e.g., 'dino_vits16', 'dino_vitb16')
@@ -59,6 +62,31 @@ def load_dinov1_model(model_name, pretrained=True):
 
     print(f"Loading DINOv1 model: {model_name}")
 
+    # Try to import timm's vision transformer as a fallback
+    try:
+        import timm
+        print(f"Using timm to load DINO model")
+
+        # Map DINO model names to timm equivalents
+        timm_name_map = {
+            'dino_vits16': 'vit_small_patch16_224.dino',
+            'dino_vits8': 'vit_small_patch8_224.dino',
+            'dino_vitb16': 'vit_base_patch16_224.dino',
+            'dino_vitb8': 'vit_base_patch8_224.dino',
+        }
+
+        if model_name in timm_name_map:
+            model = timm.create_model(timm_name_map[model_name], pretrained=pretrained)
+            print(f"Successfully loaded {model_name} via timm")
+            return model
+        else:
+            print(f"Warning: {model_name} not available in timm, falling back to torch.hub")
+    except ImportError:
+        print("timm not available, falling back to torch.hub")
+    except Exception as e:
+        print(f"Error loading via timm: {e}, falling back to torch.hub")
+
+    # Fallback to torch.hub if timm fails
     # Clear the cached DINO repo to avoid import conflicts
     cache_dir = os.path.join(torch.hub.get_dir(), 'facebookresearch_dino_main')
     if os.path.exists(cache_dir):
@@ -66,14 +94,11 @@ def load_dinov1_model(model_name, pretrained=True):
         try:
             shutil.rmtree(cache_dir)
             print("Cache cleared successfully")
-            # Give filesystem a moment to sync
             time.sleep(0.5)
         except Exception as e:
             print(f"Warning: Could not clear cache: {e}")
 
-    # Load from torch.hub with force_reload to ensure fresh download
-    # This bypasses any lingering cache issues
-    print("Loading model with force_reload=True...")
+    print("Loading model with torch.hub (force_reload=True)...")
     model = torch.hub.load('facebookresearch/dino:main', model_name,
                           pretrained=pretrained,
                           trust_repo=True,
