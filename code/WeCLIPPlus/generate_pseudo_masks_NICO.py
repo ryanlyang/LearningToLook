@@ -84,7 +84,7 @@ if __name__ == '__main__':
     dataset_init_NICO.main(src_img_dir, dev_kit_dir,
                                do_copy_images=True, split_for_val=0.0)
 
-    main(args.setup_data)
+    # main(args.setup_data)
 
 
 # After this is done you can run python run_guided_CNN.py to train the model.
