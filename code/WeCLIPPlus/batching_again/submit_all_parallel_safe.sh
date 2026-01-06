@@ -55,7 +55,7 @@ cat > "$TEMPLATE_FILE" <<'TEMPLATE'
 #SBATCH --account=reu-aisocial
 #SBATCH --partition=tier3
 #SBATCH --gres=gpu:1
-#SBATCH --time=0-06:00:00
+#SBATCH --time=0-12:00:00
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=24
 #SBATCH --mem=32G
