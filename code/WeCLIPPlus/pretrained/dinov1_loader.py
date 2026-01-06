@@ -61,44 +61,94 @@ def load_dinov1_model(model_name, pretrained=True):
         raise ValueError(f"Unknown DINOv1 model: {model_name}. Available models: {available}")
 
     import sys
+    import subprocess
     print(f"Loading DINOv1 model: {model_name}", file=sys.stderr, flush=True)
     print(f"Using torch.hub to load original DINO implementation", file=sys.stderr, flush=True)
 
     # Use torch.hub to load the original Facebook DINO implementation
-    # The cache should already be patched by fix_dino_utils.py
     print("Loading model with torch.hub...", file=sys.stderr, flush=True)
 
     try:
         model = torch.hub.load('facebookresearch/dino:main', model_name,
                               pretrained=pretrained,
                               trust_repo=True,
-                              force_reload=False,  # Don't force reload if cache is already patched
+                              force_reload=False,
                               skip_validation=True)
         print(f"Successfully loaded {model_name} via torch.hub", file=sys.stderr, flush=True)
         return model
+    except ImportError as e:
+        if "trunc_normal_" in str(e):
+            print(f"Detected trunc_normal_ import error - patching cache...", file=sys.stderr, flush=True)
+
+            # Run the fix script to patch the cache
+            cache_dir = os.path.join(torch.hub.get_dir(), 'facebookresearch_dino_main')
+            if os.path.exists(cache_dir):
+                utils_file = os.path.join(cache_dir, 'utils.py')
+
+                # Add the missing function directly
+                print(f"Patching {utils_file}...", file=sys.stderr, flush=True)
+                with open(utils_file, 'r') as f:
+                    content = f.read()
+
+                if 'def trunc_normal_' not in content:
+                    # Add the function at the beginning after imports
+                    patch_code = '''import math
+import warnings
+import torch
+
+def trunc_normal_(tensor, mean=0., std=1., a=-2., b=2.):
+    """Fills the input Tensor with values drawn from a truncated normal distribution."""
+    def norm_cdf(x):
+        return (1. + math.erf(x / math.sqrt(2.))) / 2.
+
+    if (mean < a - 2 * std) or (mean > b + 2 * std):
+        warnings.warn("mean is more than 2 std from [a, b] in trunc_normal_. "
+                      "The distribution of values may be incorrect.",
+                      stacklevel=2)
+
+    with torch.no_grad():
+        l = norm_cdf((a - mean) / std)
+        u = norm_cdf((b - mean) / std)
+        tensor.uniform_(2 * l - 1, 2 * u - 1)
+        tensor.erfinv_()
+        tensor.mul_(std * math.sqrt(2.))
+        tensor.add_(mean)
+        tensor.clamp_(min=a, max=b)
+        return tensor
+
+'''
+                    lines = content.split('\n')
+                    # Find where to insert (after imports)
+                    import_end = 0
+                    for i, line in enumerate(lines):
+                        stripped = line.strip()
+                        if stripped and not stripped.startswith('import') and not stripped.startswith('from') and not stripped.startswith('#'):
+                            import_end = i
+                            break
+
+                    lines.insert(import_end, patch_code)
+
+                    with open(utils_file, 'w') as f:
+                        f.write('\n'.join(lines))
+
+                    print(f"Successfully patched utils.py", file=sys.stderr, flush=True)
+                else:
+                    print(f"trunc_normal_ already exists in utils.py", file=sys.stderr, flush=True)
+
+            # Retry loading
+            print("Retrying model load after patching...", file=sys.stderr, flush=True)
+            model = torch.hub.load('facebookresearch/dino:main', model_name,
+                                  pretrained=pretrained,
+                                  trust_repo=True,
+                                  force_reload=False,
+                                  skip_validation=True)
+            print(f"Successfully loaded {model_name} after patching", file=sys.stderr, flush=True)
+            return model
+        else:
+            raise
     except Exception as e:
-        print(f"Error loading via torch.hub: {type(e).__name__}: {e}", file=sys.stderr, flush=True)
-
-        # If it fails, try clearing cache and reloading
-        cache_dir = os.path.join(torch.hub.get_dir(), 'facebookresearch_dino_main')
-        if os.path.exists(cache_dir):
-            print(f"Clearing cached DINO repository at {cache_dir} and retrying...", file=sys.stderr, flush=True)
-            try:
-                shutil.rmtree(cache_dir)
-                print("Cache cleared, reloading...", file=sys.stderr, flush=True)
-                time.sleep(0.5)
-            except Exception as clear_error:
-                print(f"Warning: Could not clear cache: {clear_error}", file=sys.stderr, flush=True)
-
-        # Retry with force_reload
-        print("Retrying with force_reload=True...", file=sys.stderr, flush=True)
-        model = torch.hub.load('facebookresearch/dino:main', model_name,
-                              pretrained=pretrained,
-                              trust_repo=True,
-                              force_reload=True,
-                              skip_validation=True)
-        print(f"Successfully loaded {model_name} on retry", file=sys.stderr, flush=True)
-        return model
+        print(f"Unexpected error loading via torch.hub: {type(e).__name__}: {e}", file=sys.stderr, flush=True)
+        raise
 
 
 def dino_vits16(pretrained=True):
