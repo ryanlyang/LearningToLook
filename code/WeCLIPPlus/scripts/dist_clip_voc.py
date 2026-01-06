@@ -193,7 +193,9 @@ def get_mask_by_radius(h=20, w=20, radius=8):
 def train(cfg):
     last_path = None
 
-    num_workers = 10
+    # Set num_workers=0 to avoid PyTorch multiprocessing compatibility issues
+    # with torch.utils.hooks in older PyTorch versions
+    num_workers = 0
     
     time0 = datetime.datetime.now()
     time0 = time0.replace(microsecond=0)
