@@ -93,12 +93,16 @@ python -c "import timm" 2>/dev/null || {
   pip install -q --upgrade timm
 }
 
-# Fix DINOv1 cache issue (only delete if exists)
-CACHE_DIR="$HOME/.cache/torch/hub/facebookresearch_dino_main"
-if [ -d "$CACHE_DIR" ]; then
-    echo "Removing corrupted DINOv1 cache..."
-    rm -rf "$CACHE_DIR"
-fi
+# Fix DINOv1 cache issue - try patching first, then delete if that fails
+echo "Attempting to patch DINO cache..."
+python batching_again/fix_dino_utils.py 2>/dev/null || {
+    echo "Patching failed, cleaning cache..."
+    CACHE_DIR="$HOME/.cache/torch/hub/facebookresearch_dino_main"
+    if [ -d "$CACHE_DIR" ]; then
+        echo "Removing corrupted cache at $CACHE_DIR"
+        rm -rf "$CACHE_DIR"
+    fi
+}
 
 # Run training for this specific class
 srun --unbuffered env CLIP_TEXT_VERSION="CLASS_NAME" python -u generate_pseudo_masks_NICO.py

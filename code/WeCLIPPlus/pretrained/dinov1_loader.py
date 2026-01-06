@@ -108,6 +108,12 @@ def load_dinov1_model(model_name, pretrained=True):
                 model.patch_embed.forward = patched_forward
                 print(f"Patched patch_embed to allow flexible image sizes", file=sys.stderr, flush=True)
 
+            # Disable dynamic positional embedding to use interpolation like original DINO
+            # Set the model to not use strict pos embed
+            if hasattr(model, 'pos_embed'):
+                model.pos_embed.requires_grad = False
+                print(f"Set pos_embed to non-trainable for interpolation", file=sys.stderr, flush=True)
+
             # Verify model has expected methods
             if not hasattr(model, 'forward_features'):
                 print(f"Warning: timm model lacks forward_features method, falling back to torch.hub", file=sys.stderr, flush=True)
