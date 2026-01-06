@@ -233,15 +233,18 @@ def train(cfg):
     #     max_w=cfg.dataset.crop_size
     # )
 
-    train_loader = DataLoader(train_dataset,
-                              batch_size=cfg.train.samples_per_gpu,
-                              shuffle=True,
-                              num_workers=num_workers,
-                              pin_memory=False,
-                              drop_last=True,
-                              prefetch_factor=4,
-                            #   collate_fn=smart_collate
-                              )
+    # Conditionally set prefetch_factor only when num_workers > 0
+    dataloader_kwargs = {
+        'batch_size': cfg.train.samples_per_gpu,
+        'shuffle': True,
+        'num_workers': num_workers,
+        'pin_memory': False,
+        'drop_last': True,
+    }
+    if num_workers > 0:
+        dataloader_kwargs['prefetch_factor'] = 4
+
+    train_loader = DataLoader(train_dataset, **dataloader_kwargs)
 
     # val_loader = DataLoader(val_dataset,
     #                         batch_size=1,
