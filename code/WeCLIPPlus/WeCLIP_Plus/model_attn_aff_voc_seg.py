@@ -96,6 +96,16 @@ class WeCLIP_Plus(nn.Module):
 
         self.dino_encoder = torch.hub.load('facebookresearch/dinov2', dino_model)
 
+        # Determine patch size based on model name
+        if '14' in dino_model:
+            self.dino_patch_size = 14
+        elif '16' in dino_model:
+            self.dino_patch_size = 16
+        elif '8' in dino_model:
+            self.dino_patch_size = 8
+        else:
+            self.dino_patch_size = 14  # default for dinov2
+
         for name, param in self.dino_encoder.named_parameters():
             param.requires_grad = False
 
@@ -146,7 +156,7 @@ class WeCLIP_Plus(nn.Module):
             fts_all, attn_weight_list = generate_clip_fts(img, self.encoder, require_all_fts=True, clip_flag=self.clip_flag)
 
         with torch.no_grad():
-            dino_img_h, dino_img_w = (h // 14) * 14, (w // 14) * 14
+            dino_img_h, dino_img_w = (h // self.dino_patch_size) * self.dino_patch_size, (w // self.dino_patch_size) * self.dino_patch_size
             dino_img = F.interpolate(img, size=(dino_img_h, dino_img_w), mode='bilinear', align_corners=False)
             dino_ftses = extract_dino_features(self.dino_encoder, dino_img)
             dino_fts = dino_ftses['x_norm_patchtokens']
@@ -168,14 +178,14 @@ class WeCLIP_Plus(nn.Module):
 
         if isinstance(dino_fts, list):
             for d_i, dino_fts_single in enumerate(dino_fts):
-                dino_fts_single = dino_fts_single.reshape([b, dino_img_h // 14, dino_img_w // 14, -1]).permute(0, 3, 1,
+                dino_fts_single = dino_fts_single.reshape([b, dino_img_h // self.dino_patch_size, dino_img_w // self.dino_patch_size, -1]).permute(0, 3, 1,
                                                                                                                2)
                 dino_fts[d_i] = dino_fts_single
 
             dino_fts = torch.stack(dino_fts)
             dino_fts = self.dino_decoder_fts_fuse(dino_fts)
         else:
-            dino_fts = dino_fts.reshape([b, dino_img_h // 14, dino_img_w // 14, -1]).permute(0, 3, 1, 2)
+            dino_fts = dino_fts.reshape([b, dino_img_h // self.dino_patch_size, dino_img_w // self.dino_patch_size, -1]).permute(0, 3, 1, 2)
             _, _, dino_h, dino_w = dino_fts.shape  # 32
             dino_fts = self.dino_decoder_fts_fuse(dino_fts.unsqueeze(0))
 

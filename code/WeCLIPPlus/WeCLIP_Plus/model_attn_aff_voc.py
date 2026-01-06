@@ -121,27 +121,38 @@ class WeCLIP_Plus(nn.Module):
         # DINOv2 models (patch size 14)
         if   dino_model == "dinov2_vits14":
             self.dino_encoder = dinov2_vits14(pretrained=True)
+            self.dino_patch_size = 14
         elif dino_model == "dinov2_vitb14":
             self.dino_encoder = dinov2_vitb14(pretrained=True)
+            self.dino_patch_size = 14
         elif dino_model == "dinov2_vitl14":
             self.dino_encoder = dinov2_vitl14(pretrained=True)
+            self.dino_patch_size = 14
         elif dino_model == "dinov2_vits14_reg":
             self.dino_encoder = dinov2_vits14_reg(pretrained=True)
+            self.dino_patch_size = 14
         elif dino_model == "dinov2_vitb14_reg":
             self.dino_encoder = dinov2_vitb14_reg(pretrained=True)
+            self.dino_patch_size = 14
         elif dino_model == "dinov2_vitl14_reg":
             self.dino_encoder = dinov2_vitl14_reg(pretrained=True)
+            self.dino_patch_size = 14
         # DINOv1 models (patch sizes 8 or 16)
         elif dino_model == "dino_vits16":
             self.dino_encoder = dino_vits16(pretrained=True)
+            self.dino_patch_size = 16
         elif dino_model == "dino_vits8":
             self.dino_encoder = dino_vits8(pretrained=True)
+            self.dino_patch_size = 8
         elif dino_model == "dino_vitb16":
             self.dino_encoder = dino_vitb16(pretrained=True)
+            self.dino_patch_size = 16
         elif dino_model == "dino_vitb8":
             self.dino_encoder = dino_vitb8(pretrained=True)
+            self.dino_patch_size = 8
         elif dino_model == "dino_resnet50":
             self.dino_encoder = dino_resnet50(pretrained=True)
+            self.dino_patch_size = None  # ResNet doesn't use patches
         else:
             raise ValueError(f"Unknown DINO model: {dino_model}. Available models: dinov2_vits14, dinov2_vitb14, dinov2_vitl14, dinov2_vits14_reg, dinov2_vitb14_reg, dinov2_vitl14_reg, dino_vits16, dino_vits8, dino_vitb16, dino_vitb8, dino_resnet50")
 
@@ -203,7 +214,7 @@ class WeCLIP_Plus(nn.Module):
         fts_all, attn_weight_list = generate_clip_fts(img, self.encoder, require_all_fts=True, clip_flag=self.clip_flag)
 
         with torch.no_grad():
-            dino_img_h, dino_img_w = (h//14)*14, (w//14)*14
+            dino_img_h, dino_img_w = (h//self.dino_patch_size)*self.dino_patch_size, (w//self.dino_patch_size)*self.dino_patch_size
             dino_img = F.interpolate(img, size=(dino_img_h, dino_img_w), mode='bilinear', align_corners=False)
             dino_ftses = extract_dino_features(self.dino_encoder, dino_img)
             dino_fts = dino_ftses['x_norm_patchtokens']
@@ -227,15 +238,15 @@ class WeCLIP_Plus(nn.Module):
 
         if isinstance(dino_fts, list):
             for d_i, dino_fts_single in enumerate(dino_fts):
-                dino_fts_single = dino_fts_single.reshape([b, dino_img_h // 14, dino_img_w // 14, -1]).permute(0, 3, 1, 2)
+                dino_fts_single = dino_fts_single.reshape([b, dino_img_h // self.dino_patch_size, dino_img_w // self.dino_patch_size, -1]).permute(0, 3, 1, 2)
                 dino_fts[d_i] = dino_fts_single
 
             dino_fts = torch.stack(dino_fts)
             dino_fts = self.dino_decoder_fts_fuse(dino_fts)
-            dino_h, dino_w = dino_img_h // 14, dino_img_w // 14
+            dino_h, dino_w = dino_img_h // self.dino_patch_size, dino_img_w // self.dino_patch_size
 
         else:
-            dino_fts = dino_fts.reshape([b, dino_img_h//14, dino_img_w//14, -1]).permute(0,3,1,2)
+            dino_fts = dino_fts.reshape([b, dino_img_h//self.dino_patch_size, dino_img_w//self.dino_patch_size, -1]).permute(0,3,1,2)
             _, _, dino_h, dino_w = dino_fts.shape #32
             dino_fts = self.dino_decoder_fts_fuse(dino_fts.unsqueeze(0))
         
