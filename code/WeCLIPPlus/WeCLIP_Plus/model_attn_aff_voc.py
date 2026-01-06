@@ -25,6 +25,9 @@ from pretrained.facebookDinov2.hubconf import (
 # Import DINOv1 models
 from pretrained.dinov1_loader import dino_vits16
 
+# Import XCiT models
+from pretrained.xcit_loader import xcit_small_12_p16
+
 def Normalize_clip():
     return Compose([
     Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))])
@@ -135,8 +138,12 @@ class WeCLIP_Plus(nn.Module):
         elif dino_model == "dino_vits16":
             self.dino_encoder = dino_vits16(pretrained=True)
             self.dino_patch_size = 16
+        # XCiT models (patch size 16)
+        elif dino_model == "xcit_small_12_p16":
+            self.dino_encoder = xcit_small_12_p16(pretrained=True)
+            self.dino_patch_size = 16
         else:
-            raise ValueError(f"Unknown DINO model: {dino_model}. Available models: dinov2_vits14, dinov2_vitb14, dinov2_vitl14, dinov2_vits14_reg, dinov2_vitb14_reg, dinov2_vitl14_reg, dino_vits16")
+            raise ValueError(f"Unknown DINO model: {dino_model}. Available models: dinov2_vits14, dinov2_vitb14, dinov2_vitl14, dinov2_vits14_reg, dinov2_vitb14_reg, dinov2_vitl14_reg, dino_vits16, xcit_small_12_p16")
 
 
         for name, param in self.dino_encoder.named_parameters():

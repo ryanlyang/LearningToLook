@@ -46,12 +46,19 @@ clip_init:
 
 #-----------------dino-------------------------
 #use_dino: True
-# Using DINOv1 ViT-Small with patch size 16
+# Using XCiT-Small-12 with patch size 16 (ACTIVE)
 dino_init:
-  dino_model: 'dino_vits16'
+  dino_model: 'xcit_small_12_p16'
   dino_fts_fuse_dim: 384
   decoder_layer: 3
 
+# Alternative: DINOv1 ViT-Small with patch size 16
+#dino_init:
+#  dino_model: 'dino_vits16'
+#  dino_fts_fuse_dim: 384
+#  decoder_layer: 3
+
+# Alternative: DINOv2 ViT-Small with patch size 14
 #dino_init:
 #  dino_model: 'dinov2_vits14_reg'
 #  dino_fts_fuse_dim: 384

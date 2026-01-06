@@ -2,3 +2,4 @@ data/saved/
 LeNet_Checkpoints/
 data4/
 data/github/
+pretrained/dino_xcit_small_12_p16_pretrain.pth
