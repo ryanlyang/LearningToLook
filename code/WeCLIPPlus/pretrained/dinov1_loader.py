@@ -132,35 +132,45 @@ def trunc_normal_(tensor, mean=0., std=1., a=-2., b=2.):
                         f.write('\n'.join(lines))
 
                     print(f"Successfully patched utils.py", file=sys.stderr, flush=True)
+
+                    # CRITICAL: Clear Python's import cache to pick up the patched file
+                    # BUT DON'T clear torch.utils or other system modules!
+                    print(f"Clearing DINO-specific Python import cache...", file=sys.stderr, flush=True)
+                    import importlib
+                    # Only remove modules from the DINO hub cache directory
+                    # DO NOT remove torch.utils, numpy.utils, or other system utils
+                    modules_to_clear = [key for key in sys.modules.keys()
+                                       if ('vision_transformer' in key and 'torch' not in key) or
+                                          ('dino' in key.lower() and 'torch' not in key)]
+                    for mod in modules_to_clear:
+                        print(f"Removing cached module: {mod}", file=sys.stderr, flush=True)
+                        del sys.modules[mod]
+
+                    # Also clear importlib cache
+                    importlib.invalidate_caches()
+                    print(f"DINO import cache cleared (torch.utils preserved)", file=sys.stderr, flush=True)
+
+                    # Retry loading with force_reload to re-import everything
+                    print("Retrying model load after patching...", file=sys.stderr, flush=True)
+                    model = torch.hub.load('facebookresearch/dino:main', model_name,
+                                          pretrained=pretrained,
+                                          trust_repo=True,
+                                          force_reload=True,  # Force reimport of hub modules
+                                          skip_validation=True)
+                    print(f"Successfully loaded {model_name} after patching", file=sys.stderr, flush=True)
+                    return model
                 else:
-                    print(f"trunc_normal_ already exists in utils.py", file=sys.stderr, flush=True)
-
-                # CRITICAL: Clear Python's import cache to pick up the patched file
-                # BUT DON'T clear torch.utils or other system modules!
-                print(f"Clearing DINO-specific Python import cache...", file=sys.stderr, flush=True)
-                import importlib
-                # Only remove modules from the DINO hub cache directory
-                # DO NOT remove torch.utils, numpy.utils, or other system utils
-                modules_to_clear = [key for key in sys.modules.keys()
-                                   if ('vision_transformer' in key and 'torch' not in key) or
-                                      ('dino' in key.lower() and 'torch' not in key)]
-                for mod in modules_to_clear:
-                    print(f"Removing cached module: {mod}", file=sys.stderr, flush=True)
-                    del sys.modules[mod]
-
-                # Also clear importlib cache
-                importlib.invalidate_caches()
-                print(f"DINO import cache cleared (torch.utils preserved)", file=sys.stderr, flush=True)
-
-            # Retry loading with force_reload to re-import everything
-            print("Retrying model load after patching...", file=sys.stderr, flush=True)
-            model = torch.hub.load('facebookresearch/dino:main', model_name,
-                                  pretrained=pretrained,
-                                  trust_repo=True,
-                                  force_reload=True,  # Force reimport of hub modules
-                                  skip_validation=True)
-            print(f"Successfully loaded {model_name} after patching", file=sys.stderr, flush=True)
-            return model
+                    print(f"trunc_normal_ already exists in utils.py - skipping cache clear and reload", file=sys.stderr, flush=True)
+                    # No need to clear cache or force reload - the patch already exists
+                    # Just retry the original load without force_reload
+                    print("Retrying model load without cache manipulation...", file=sys.stderr, flush=True)
+                    model = torch.hub.load('facebookresearch/dino:main', model_name,
+                                          pretrained=pretrained,
+                                          trust_repo=True,
+                                          force_reload=False,  # Don't force reload since patch already exists
+                                          skip_validation=True)
+                    print(f"Successfully loaded {model_name} with existing patch", file=sys.stderr, flush=True)
+                    return model
         else:
             raise
     except Exception as e:
