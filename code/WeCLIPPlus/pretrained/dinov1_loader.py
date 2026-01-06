@@ -44,10 +44,10 @@ DINOV1_PATCH_SIZES = {
 
 def load_dinov1_model(model_name, pretrained=True):
     """
-    Load a DINOv1 model by downloading weights directly
+    Load a DINOv1 model using torch.hub (original Facebook implementation)
 
-    This avoids torch.hub import conflicts by loading weights into a model
-    we construct ourselves.
+    The original DINO implementation handles variable image sizes natively
+    through positional embedding interpolation, unlike timm's implementation.
 
     Args:
         model_name: Name of the DINO model (e.g., 'dino_vits16', 'dino_vitb16')
@@ -62,93 +62,43 @@ def load_dinov1_model(model_name, pretrained=True):
 
     import sys
     print(f"Loading DINOv1 model: {model_name}", file=sys.stderr, flush=True)
+    print(f"Using torch.hub to load original DINO implementation", file=sys.stderr, flush=True)
 
-    # Try to import timm's vision transformer as a fallback
+    # Use torch.hub to load the original Facebook DINO implementation
+    # The cache should already be patched by fix_dino_utils.py
+    print("Loading model with torch.hub...", file=sys.stderr, flush=True)
+
     try:
-        import timm
-        print(f"Using timm to load DINO model", file=sys.stderr, flush=True)
-
-        # Map DINO model names to timm equivalents
-        timm_name_map = {
-            'dino_vits16': 'vit_small_patch16_224.dino',
-            'dino_vits8': 'vit_small_patch8_224.dino',
-            'dino_vitb16': 'vit_base_patch16_224.dino',
-            'dino_vitb8': 'vit_base_patch8_224.dino',
-        }
-
-        if model_name in timm_name_map:
-            print(f"Creating timm model: {timm_name_map[model_name]}", file=sys.stderr, flush=True)
-            model = timm.create_model(
-                timm_name_map[model_name],
-                pretrained=pretrained,
-                dynamic_img_size=True  # Allow variable input sizes
-            )
-
-            # Patch the patch_embed forward to remove strict size checking
-            if hasattr(model, 'patch_embed'):
-                original_forward = model.patch_embed.forward
-
-                def patched_forward(x):
-                    # Store original settings
-                    B, C, H, W = x.shape
-                    # Call original but catch and ignore size assertions
-                    try:
-                        return original_forward(x)
-                    except AssertionError as e:
-                        if "divisible by patch size" in str(e) or "doesn't match model" in str(e):
-                            # Manually do the patching without strict checks
-                            x = model.patch_embed.proj(x)
-                            if model.patch_embed.flatten:
-                                x = x.flatten(2).transpose(1, 2)
-                            x = model.patch_embed.norm(x) if model.patch_embed.norm is not None else x
-                            return x
-                        else:
-                            raise
-
-                model.patch_embed.forward = patched_forward
-                print(f"Patched patch_embed to allow flexible image sizes", file=sys.stderr, flush=True)
-
-            # Disable dynamic positional embedding to use interpolation like original DINO
-            # Set the model to not use strict pos embed
-            if hasattr(model, 'pos_embed'):
-                model.pos_embed.requires_grad = False
-                print(f"Set pos_embed to non-trainable for interpolation", file=sys.stderr, flush=True)
-
-            # Verify model has expected methods
-            if not hasattr(model, 'forward_features'):
-                print(f"Warning: timm model lacks forward_features method, falling back to torch.hub", file=sys.stderr, flush=True)
-                raise AttributeError("Model missing forward_features")
-
-            print(f"Successfully loaded {model_name} via timm with forward_features method", file=sys.stderr, flush=True)
-            return model
-        else:
-            print(f"Warning: {model_name} not available in timm, falling back to torch.hub", file=sys.stderr, flush=True)
-    except ImportError as e:
-        print(f"timm not available: {e}, falling back to torch.hub", file=sys.stderr, flush=True)
+        model = torch.hub.load('facebookresearch/dino:main', model_name,
+                              pretrained=pretrained,
+                              trust_repo=True,
+                              force_reload=False,  # Don't force reload if cache is already patched
+                              skip_validation=True)
+        print(f"Successfully loaded {model_name} via torch.hub", file=sys.stderr, flush=True)
+        return model
     except Exception as e:
-        print(f"Error loading via timm: {type(e).__name__}: {e}", file=sys.stderr, flush=True)
-        print("Falling back to torch.hub", file=sys.stderr, flush=True)
+        print(f"Error loading via torch.hub: {type(e).__name__}: {e}", file=sys.stderr, flush=True)
 
-    # Fallback to torch.hub if timm fails
-    # Clear the cached DINO repo to avoid import conflicts
-    cache_dir = os.path.join(torch.hub.get_dir(), 'facebookresearch_dino_main')
-    if os.path.exists(cache_dir):
-        print(f"Clearing cached DINO repository at {cache_dir}", file=sys.stderr, flush=True)
-        try:
-            shutil.rmtree(cache_dir)
-            print("Cache cleared successfully", file=sys.stderr, flush=True)
-            time.sleep(0.5)
-        except Exception as e:
-            print(f"Warning: Could not clear cache: {e}", file=sys.stderr, flush=True)
+        # If it fails, try clearing cache and reloading
+        cache_dir = os.path.join(torch.hub.get_dir(), 'facebookresearch_dino_main')
+        if os.path.exists(cache_dir):
+            print(f"Clearing cached DINO repository at {cache_dir} and retrying...", file=sys.stderr, flush=True)
+            try:
+                shutil.rmtree(cache_dir)
+                print("Cache cleared, reloading...", file=sys.stderr, flush=True)
+                time.sleep(0.5)
+            except Exception as clear_error:
+                print(f"Warning: Could not clear cache: {clear_error}", file=sys.stderr, flush=True)
 
-    print("Loading model with torch.hub (force_reload=True)...", file=sys.stderr, flush=True)
-    model = torch.hub.load('facebookresearch/dino:main', model_name,
-                          pretrained=pretrained,
-                          trust_repo=True,
-                          force_reload=True,
-                          skip_validation=True)
-
-    return model
+        # Retry with force_reload
+        print("Retrying with force_reload=True...", file=sys.stderr, flush=True)
+        model = torch.hub.load('facebookresearch/dino:main', model_name,
+                              pretrained=pretrained,
+                              trust_repo=True,
+                              force_reload=True,
+                              skip_validation=True)
+        print(f"Successfully loaded {model_name} on retry", file=sys.stderr, flush=True)
+        return model
 
 
 def dino_vits16(pretrained=True):

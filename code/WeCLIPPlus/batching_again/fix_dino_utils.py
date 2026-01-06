@@ -34,6 +34,7 @@ trunc_normal_code = '''
 # Added to fix import error
 import math
 import warnings
+import torch
 
 def trunc_normal_(tensor, mean=0., std=1., a=-2., b=2.):
     """Fills the input Tensor with values drawn from a truncated normal distribution."""

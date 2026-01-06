@@ -35,20 +35,10 @@ python -c "import open_clip" 2>/dev/null || {
   pip install -q open_clip_torch
 }
 
-python -c "import timm" 2>/dev/null || {
-  echo "Installing timm (latest version)..."
-  pip install -q --upgrade timm
-}
-
-# Fix DINOv1 cache issue - try patching first, then delete if that fails
+# Fix DINOv1 cache issue - patch the cache before first use
 echo "Attempting to patch DINO cache..."
-python batching_again/fix_dino_utils.py 2>/dev/null || {
-    echo "Patching failed, cleaning cache..."
-    CACHE_DIR="$HOME/.cache/torch/hub/facebookresearch_dino_main"
-    if [ -d "$CACHE_DIR" ]; then
-        echo "Removing corrupted cache at $CACHE_DIR"
-        rm -rf "$CACHE_DIR"
-    fi
+python batching_again/fix_dino_utils.py || {
+    echo "Patching failed or cache doesn't exist yet - will be created on first load"
 }
 
 # Test with a single class (bear)
