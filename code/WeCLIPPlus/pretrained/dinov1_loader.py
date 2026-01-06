@@ -135,12 +135,26 @@ def trunc_normal_(tensor, mean=0., std=1., a=-2., b=2.):
                 else:
                     print(f"trunc_normal_ already exists in utils.py", file=sys.stderr, flush=True)
 
-            # Retry loading
+                # CRITICAL: Clear Python's import cache to pick up the patched file
+                print(f"Clearing Python import cache...", file=sys.stderr, flush=True)
+                import importlib
+                # Remove all cached modules from the DINO repo
+                modules_to_clear = [key for key in sys.modules.keys()
+                                   if 'utils' in key or 'vision_transformer' in key or 'dino' in key.lower()]
+                for mod in modules_to_clear:
+                    print(f"Removing cached module: {mod}", file=sys.stderr, flush=True)
+                    del sys.modules[mod]
+
+                # Also clear importlib cache
+                importlib.invalidate_caches()
+                print(f"Import cache cleared", file=sys.stderr, flush=True)
+
+            # Retry loading with force_reload to re-import everything
             print("Retrying model load after patching...", file=sys.stderr, flush=True)
             model = torch.hub.load('facebookresearch/dino:main', model_name,
                                   pretrained=pretrained,
                                   trust_repo=True,
-                                  force_reload=False,
+                                  force_reload=True,  # Force reimport of hub modules
                                   skip_validation=True)
             print(f"Successfully loaded {model_name} after patching", file=sys.stderr, flush=True)
             return model
