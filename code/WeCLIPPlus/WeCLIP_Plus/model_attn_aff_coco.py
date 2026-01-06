@@ -18,6 +18,31 @@ def Normalize_clip():
     Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))])
 
 
+def extract_dino_features(dino_encoder, dino_img, model_name='dinov2'):
+    """
+    Extract features from DINO models (v1 or v2) with unified API.
+
+    Args:
+        dino_encoder: DINO model (v1 or v2)
+        dino_img: Input image tensor
+        model_name: Model name to determine API version
+
+    Returns:
+        Dictionary with 'x_norm_patchtokens' key containing patch tokens
+    """
+    # Check if this is a DINOv1 model (no forward_features method)
+    if not hasattr(dino_encoder, 'forward_features'):
+        # DINOv1 API: use get_intermediate_layers
+        # Returns list of [batch, num_patches+1, dim] where first token is CLS
+        output = dino_encoder.get_intermediate_layers(dino_img, n=1)
+        # Extract patch tokens (exclude CLS token at position 0)
+        patch_tokens = output[0][:, 1:, :]  # [batch, num_patches, dim]
+        return {'x_norm_patchtokens': patch_tokens}
+    else:
+        # DINOv2 API: use forward_features
+        return dino_encoder.forward_features(dino_img)
+
+
 def reshape_transform(tensor, height=28, width=28):
     tensor = tensor.permute(1, 0, 2)
     result = tensor[:, 1:, :].reshape(tensor.size(0), height, width, tensor.size(2))
@@ -133,7 +158,7 @@ class WeCLIP_Plus(nn.Module):
         with torch.no_grad():
             dino_img_h, dino_img_w = (h//14)*14, (w//14)*14
             dino_img = F.interpolate(img, size=(dino_img_h, dino_img_w), mode='bilinear', align_corners=False)
-            dino_ftses = self.dino_encoder.forward_features(dino_img)
+            dino_ftses = extract_dino_features(self.dino_encoder, dino_img)
             dino_fts = dino_ftses['x_norm_patchtokens']
 
         fts_all_stack = torch.stack(fts_all, dim=0) # (11, hw, b, c)
