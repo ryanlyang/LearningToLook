@@ -7,7 +7,10 @@ import random
 import sys
 sys.path.append(".")
 import numpy as np
+
+# Import torch.utils.data BEFORE any local utils to prevent shadowing
 import torch
+import torch.utils.data as torch_data
 import torch.nn.functional as F
 from omegaconf import OmegaConf
 from torch.utils.data import DataLoader
