@@ -88,13 +88,8 @@ python -c "import open_clip" 2>/dev/null || {
   pip install -q open_clip_torch
 }
 
-# Fix DINOv1 cache issue - patch the cache before first use
-echo "Attempting to patch DINO cache..."
-python batching_again/fix_dino_utils.py || {
-    echo "Patching failed or cache doesn't exist yet - will be created on first load"
-}
-
 # Run training for this specific class
+# Note: Now using local DINOv1 weights, no torch.hub patching needed
 srun --unbuffered env CLIP_TEXT_VERSION="CLASS_NAME" python -u generate_pseudo_masks_NICO.py
 TEMPLATE
 
