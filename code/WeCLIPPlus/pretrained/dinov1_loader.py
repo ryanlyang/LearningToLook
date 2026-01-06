@@ -65,6 +65,12 @@ def load_dinov1_model(model_name, pretrained=True):
     print(f"Loading DINOv1 model: {model_name}", file=sys.stderr, flush=True)
     print(f"Using torch.hub to load original DINO implementation", file=sys.stderr, flush=True)
 
+    # CRITICAL: Add DINO cache to sys.path FIRST to ensure its utils.py is imported
+    cache_dir = os.path.join(torch.hub.get_dir(), 'facebookresearch_dino_main')
+    if os.path.exists(cache_dir) and cache_dir not in sys.path:
+        sys.path.insert(0, cache_dir)
+        print(f"Added DINO cache to sys.path: {cache_dir}", file=sys.stderr, flush=True)
+
     # Use torch.hub to load the original Facebook DINO implementation
     print("Loading model with torch.hub...", file=sys.stderr, flush=True)
 
@@ -162,7 +168,11 @@ def trunc_normal_(tensor, mean=0., std=1., a=-2., b=2.):
                 else:
                     print(f"trunc_normal_ already exists in utils.py - skipping cache clear and reload", file=sys.stderr, flush=True)
                     # No need to clear cache or force reload - the patch already exists
-                    # Just retry the original load without force_reload
+                    # But ensure cache is in sys.path
+                    if cache_dir not in sys.path:
+                        sys.path.insert(0, cache_dir)
+                        print(f"Ensured DINO cache is in sys.path: {cache_dir}", file=sys.stderr, flush=True)
+
                     print("Retrying model load without cache manipulation...", file=sys.stderr, flush=True)
                     model = torch.hub.load('facebookresearch/dino:main', model_name,
                                           pretrained=pretrained,
