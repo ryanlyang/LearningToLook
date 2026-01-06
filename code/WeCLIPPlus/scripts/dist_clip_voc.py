@@ -8,10 +8,10 @@ import sys
 sys.path.append(".")
 import numpy as np
 
-# Import torch.utils.data BEFORE any local utils to prevent shadowing
+# Import torch FIRST and save reference to prevent shadowing by local utils
 import torch
-import torch.utils.data as torch_data
 import torch.nn.functional as F
+_torch_utils = torch.utils  # Save reference before local imports
 from omegaconf import OmegaConf
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
@@ -21,6 +21,8 @@ from utils.losses import get_aff_loss
 from utils import evaluate
 from utils.AverageMeter import AverageMeter
 from utils.camutils import cams_to_affinity_label
+# Restore torch.utils after local imports
+torch.utils = _torch_utils
 from utils.optimizer import PolyWarmupAdamW
 from WeCLIP_Plus.model_attn_aff_voc import WeCLIP_Plus
 from WeCLIP_Plus.dice_loss import DiceLoss
