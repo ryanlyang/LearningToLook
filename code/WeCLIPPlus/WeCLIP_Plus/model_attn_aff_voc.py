@@ -23,13 +23,7 @@ from pretrained.facebookDinov2.hubconf import (
 )
 
 # Import DINOv1 models
-from pretrained.dinov1_loader import (
-    dino_vits16,
-    dino_vits8,
-    dino_vitb16,
-    dino_vitb8,
-    dino_resnet50,
-)
+from pretrained.dinov1_loader import dino_vits16
 
 def Normalize_clip():
     return Compose([
@@ -137,24 +131,12 @@ class WeCLIP_Plus(nn.Module):
         elif dino_model == "dinov2_vitl14_reg":
             self.dino_encoder = dinov2_vitl14_reg(pretrained=True)
             self.dino_patch_size = 14
-        # DINOv1 models (patch sizes 8 or 16)
+        # DINOv1 models (patch size 16)
         elif dino_model == "dino_vits16":
             self.dino_encoder = dino_vits16(pretrained=True)
             self.dino_patch_size = 16
-        elif dino_model == "dino_vits8":
-            self.dino_encoder = dino_vits8(pretrained=True)
-            self.dino_patch_size = 8
-        elif dino_model == "dino_vitb16":
-            self.dino_encoder = dino_vitb16(pretrained=True)
-            self.dino_patch_size = 16
-        elif dino_model == "dino_vitb8":
-            self.dino_encoder = dino_vitb8(pretrained=True)
-            self.dino_patch_size = 8
-        elif dino_model == "dino_resnet50":
-            self.dino_encoder = dino_resnet50(pretrained=True)
-            self.dino_patch_size = None  # ResNet doesn't use patches
         else:
-            raise ValueError(f"Unknown DINO model: {dino_model}. Available models: dinov2_vits14, dinov2_vitb14, dinov2_vitl14, dinov2_vits14_reg, dinov2_vitb14_reg, dinov2_vitl14_reg, dino_vits16, dino_vits8, dino_vitb16, dino_vitb8, dino_resnet50")
+            raise ValueError(f"Unknown DINO model: {dino_model}. Available models: dinov2_vits14, dinov2_vitb14, dinov2_vitl14, dinov2_vits14_reg, dinov2_vitb14_reg, dinov2_vitl14_reg, dino_vits16")
 
 
         for name, param in self.dino_encoder.named_parameters():
