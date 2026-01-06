@@ -136,18 +136,21 @@ def trunc_normal_(tensor, mean=0., std=1., a=-2., b=2.):
                     print(f"trunc_normal_ already exists in utils.py", file=sys.stderr, flush=True)
 
                 # CRITICAL: Clear Python's import cache to pick up the patched file
-                print(f"Clearing Python import cache...", file=sys.stderr, flush=True)
+                # BUT DON'T clear torch.utils or other system modules!
+                print(f"Clearing DINO-specific Python import cache...", file=sys.stderr, flush=True)
                 import importlib
-                # Remove all cached modules from the DINO repo
+                # Only remove modules from the DINO hub cache directory
+                # DO NOT remove torch.utils, numpy.utils, or other system utils
                 modules_to_clear = [key for key in sys.modules.keys()
-                                   if 'utils' in key or 'vision_transformer' in key or 'dino' in key.lower()]
+                                   if ('vision_transformer' in key and 'torch' not in key) or
+                                      ('dino' in key.lower() and 'torch' not in key)]
                 for mod in modules_to_clear:
                     print(f"Removing cached module: {mod}", file=sys.stderr, flush=True)
                     del sys.modules[mod]
 
                 # Also clear importlib cache
                 importlib.invalidate_caches()
-                print(f"Import cache cleared", file=sys.stderr, flush=True)
+                print(f"DINO import cache cleared (torch.utils preserved)", file=sys.stderr, flush=True)
 
             # Retry loading with force_reload to re-import everything
             print("Retrying model load after patching...", file=sys.stderr, flush=True)
