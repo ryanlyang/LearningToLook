@@ -84,10 +84,29 @@ def load_dinov1_model(model_name, pretrained=True):
                 dynamic_img_size=True  # Allow variable input sizes
             )
 
-            # Disable strict size checking in patch embedding to match original DINO behavior
-            if hasattr(model, 'patch_embed') and hasattr(model.patch_embed, 'strict_img_size'):
-                model.patch_embed.strict_img_size = False
-                print(f"Disabled strict image size checking", file=sys.stderr, flush=True)
+            # Patch the patch_embed forward to remove strict size checking
+            if hasattr(model, 'patch_embed'):
+                original_forward = model.patch_embed.forward
+
+                def patched_forward(x):
+                    # Store original settings
+                    B, C, H, W = x.shape
+                    # Call original but catch and ignore size assertions
+                    try:
+                        return original_forward(x)
+                    except AssertionError as e:
+                        if "divisible by patch size" in str(e) or "doesn't match model" in str(e):
+                            # Manually do the patching without strict checks
+                            x = model.patch_embed.proj(x)
+                            if model.patch_embed.flatten:
+                                x = x.flatten(2).transpose(1, 2)
+                            x = model.patch_embed.norm(x) if model.patch_embed.norm is not None else x
+                            return x
+                        else:
+                            raise
+
+                model.patch_embed.forward = patched_forward
+                print(f"Patched patch_embed to allow flexible image sizes", file=sys.stderr, flush=True)
 
             # Verify model has expected methods
             if not hasattr(model, 'forward_features'):
