@@ -6,12 +6,12 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=24
 #SBATCH --mem=64G
-#SBATCH --output=/home/ryreu/guided_cnn/logsSwitch/waterbirds_%j.out
-#SBATCH --error=/home/ryreu/guided_cnn/logsSwitch/waterbirds_%j.err
+#SBATCH --output=/home/ryreu/guided_cnn/logsWaterbird/waterbirds_%j.out
+#SBATCH --error=/home/ryreu/guided_cnn/logsWaterbird/waterbirds_%j.err
 #SBATCH --signal=TERM@120
 
 set -Eeuo pipefail
-mkdir -p /home/ryreu/guided_cnn/logsSwitch
+mkdir -p /home/ryreu/guided_cnn/logsWaterbird
 
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate learntolook

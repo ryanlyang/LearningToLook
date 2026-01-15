@@ -135,6 +135,7 @@ def main(repo_root, src_img_dir, setup_data, class_name):
 
     if setup_data:
         print("Setting up data")
+        os.makedirs(paths["set_dir"], exist_ok=True)
         moveImageSets.main(paths["set_dir"])
         _prepare_single_class_dataset(
             src_img_dir,
