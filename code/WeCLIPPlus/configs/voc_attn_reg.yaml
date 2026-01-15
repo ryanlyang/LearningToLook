@@ -48,9 +48,9 @@ clip_init:
 #use_dino: True
 dino_init:
   #dino_pretrain_path: 'C:/Users/ryreu/…/pretrained/dino_vits16_pretrain.pth'
-  dino_model: 'dinov2_vits14'
-  dino_fts_fuse_dim: 384
-  decoder_layer: 3
+  dino_model: 'dinov2_vitl14_reg'
+  dino_fts_fuse_dim: 1024
+  decoder_layer: 5
 
 #dino_init:
 #  dino_model: 'dinov2_vits14_reg'
