@@ -26,7 +26,7 @@ def _resolve_paths(repo_root):
     }
 
 
-def _write_runtime_config(base_config, output_dir, voc_root, clip_pretrain_path):
+def _write_runtime_config(base_config, output_dir, voc_root, clip_pretrain_path, clip_pretrained=None):
     os.makedirs(output_dir, exist_ok=True)
     with open(base_config, "r") as f:
         content = f.read()
@@ -48,6 +48,19 @@ def _write_runtime_config(base_config, output_dir, voc_root, clip_pretrain_path)
         rf"\1{clip_pretrain_path}\3",
         content,
     )
+    if clip_pretrained is not None:
+        if re.search(r"clip_pretrained:\s*'[^']*'", content):
+            content = re.sub(
+                r"(clip_pretrained:\s*')([^']*)(')",
+                rf"\1{clip_pretrained}\3",
+                content,
+            )
+        else:
+            content = re.sub(
+                r"(clip_pretrain_path:\s*'[^']*'\n)",
+                rf"\1  clip_pretrained: '{clip_pretrained}'\n",
+                content,
+            )
 
     output_path = os.path.join(output_dir, "voc_attn_reg_runtime.yaml")
     with open(output_path, "w") as f:
@@ -55,13 +68,14 @@ def _write_runtime_config(base_config, output_dir, voc_root, clip_pretrain_path)
     return output_path
 
 
-def main(repo_root, src_img_dir, setup_data):
+def main(repo_root, src_img_dir, setup_data, clip_pretrained):
     paths = _resolve_paths(repo_root)
     config = _write_runtime_config(
         paths["config"],
         paths["config_dir"],
         paths["voc_root"],
         paths["clip_pretrain_path"],
+        clip_pretrained,
     )
     class_names = clip_text.class_names
     
@@ -111,10 +125,15 @@ if __name__ == '__main__':
                         help='Run data setup steps (move ImageSets, init dataset, move images).')
     parser.add_argument('--no-setup-data', dest='setup_data', action='store_false',
                         help='Skip data setup steps.')
+    parser.add_argument(
+        "--clip-pretrained",
+        default=None,
+        help="OpenCLIP pretrained tag or local checkpoint (e.g., openai, laion2b_s34b_b88k).",
+    )
     parser.set_defaults(setup_data=False)  # default = skip
     args = parser.parse_args()
 
-    main(args.repo_root, args.src_img_dir, args.setup_data)
+    main(args.repo_root, args.src_img_dir, args.setup_data, args.clip_pretrained)
 
 
 # After this is done you can run python run_guided_CNN.py to train the model.

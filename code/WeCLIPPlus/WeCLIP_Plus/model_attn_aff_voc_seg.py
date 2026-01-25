@@ -57,14 +57,15 @@ def _refine_cams(ref_mod, images, cams, valid_key):
 
 class WeCLIP_Plus(nn.Module):
     def __init__(self, num_classes=None, clip_model=None, dino_model=None, dino_fts_dim=768, decoder_layers=3,
-                 embedding_dim=256, in_channels=512, dataset_root_path=None, clip_flag=16, device='cuda'):
+                 embedding_dim=256, in_channels=512, dataset_root_path=None, clip_flag=16, device='cuda',
+                 clip_pretrained=None):
         super().__init__()
         self.num_classes = num_classes
         self.embedding_dim = embedding_dim
         self.dino_fts_fuse_dim = dino_fts_dim # 384 for small, 768 for b, 1024 for l
         self.clip_flag = clip_flag
 
-        self.encoder, _ = clip.load(clip_model, device=device)
+        self.encoder, _ = clip.load(clip_model, device=device, pretrained=clip_pretrained)
 
         for param in self.encoder.parameters():
             param.requires_grad=False

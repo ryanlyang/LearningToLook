@@ -28,7 +28,7 @@ def _resolve_paths(repo_root, class_name):
     }
 
 
-def _write_base_config(base_config, output_dir, base_voc_root, clip_pretrain_path):
+def _write_base_config(base_config, output_dir, base_voc_root, clip_pretrain_path, clip_pretrained=None):
     os.makedirs(output_dir, exist_ok=True)
     with open(base_config, "r") as f:
         content = f.read()
@@ -50,13 +50,26 @@ def _write_base_config(base_config, output_dir, base_voc_root, clip_pretrain_pat
         rf"\1{clip_pretrain_path}\3",
         content,
     )
+    if clip_pretrained is not None:
+        if re.search(r"clip_pretrained:\s*'[^']*'", content):
+            content = re.sub(
+                r"(clip_pretrained:\s*')([^']*)(')",
+                rf"\1{clip_pretrained}\3",
+                content,
+            )
+        else:
+            content = re.sub(
+                r"(clip_pretrain_path:\s*'[^']*'\n)",
+                rf"\1  clip_pretrained: '{clip_pretrained}'\n",
+                content,
+            )
 
     output_path = os.path.join(output_dir, "voc_attn_reg_base.yaml")
     with open(output_path, "w") as f:
         f.write(content)
     return output_path
 
-def main(repo_root, src_img_dir, setup_data, class_name=None):
+def main(repo_root, src_img_dir, setup_data, class_name=None, clip_pretrained=None):
     # Get class from CLIP_TEXT_VERSION environment variable, default to 'bear'
     # Keep underscores as-is because directory structure uses underscores.
     this_class = class_name or os.environ.get("CLIP_TEXT_VERSION", "bear")
@@ -67,6 +80,7 @@ def main(repo_root, src_img_dir, setup_data, class_name=None):
         paths["config_dir"],
         paths["base_voc_root"],
         paths["clip_pretrain_path"],
+        clip_pretrained,
     )
     if setup_data:
         print("Setting up data")
@@ -119,6 +133,11 @@ if __name__ == '__main__':
         default=None,
         help="Override CLIP_TEXT_VERSION (default: env or 'bear').",
     )
+    parser.add_argument(
+        "--clip-pretrained",
+        default=None,
+        help="OpenCLIP pretrained tag or local checkpoint (e.g., openai, laion2b_s34b_b88k).",
+    )
     # Use either `--setup-data` or `--no-setup-data`
     parser.add_argument('--setup-data', dest='setup_data', action='store_true',
                         help='Run data setup steps (move ImageSets, init dataset, move images).')
@@ -127,7 +146,8 @@ if __name__ == '__main__':
     parser.set_defaults(setup_data=False)  # default = skip
     args = parser.parse_args()
 
-    main(args.repo_root, args.src_img_dir, args.setup_data, class_name=args.class_name)
+    main(args.repo_root, args.src_img_dir, args.setup_data, class_name=args.class_name,
+         clip_pretrained=args.clip_pretrained)
 
 
 # After this is done you can run python run_guided_CNN.py to train the model.

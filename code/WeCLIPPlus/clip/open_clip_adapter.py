@@ -8,7 +8,7 @@ used in WeCLIP+. It wraps open_clip models to provide the same API as the custom
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import List, Union, Tuple
+from typing import List, Union, Tuple, Optional
 import open_clip
 from PIL import Image
 import numpy as np
@@ -333,7 +333,7 @@ class CLIPAdapter(nn.Module):
 
 
 def load(name: str, device: Union[str, torch.device] = "cuda" if torch.cuda.is_available() else "cpu",
-         jit: bool = False, download_root: str = None):
+         jit: bool = False, download_root: str = None, pretrained: Optional[str] = None):
     """Load a CLIP model using open_clip
 
     This function provides the same interface as the original clip.load() but uses open_clip underneath.
@@ -343,6 +343,7 @@ def load(name: str, device: Union[str, torch.device] = "cuda" if torch.cuda.is_a
         device: Device to load model on
         jit: Whether to use JIT (not supported with open_clip)
         download_root: Path to download models (not used with open_clip)
+        pretrained: open_clip pretrained tag or local checkpoint path (e.g., 'openai', 'laion2b_s34b_b88k')
 
     Returns:
         Tuple of (model, preprocess_transform)
@@ -386,11 +387,13 @@ def load(name: str, device: Union[str, torch.device] = "cuda" if torch.cuda.is_a
             # Default to ViT-B-16 if can't determine
             openclip_name = 'ViT-B-16-quickgelu'
 
-        pretrained = 'openai'  # Use OpenAI pretrained weights from open_clip
-        print(f"Note: Ignoring local checkpoint {name}, using open_clip pretrained weights for {openclip_name}")
+        if pretrained is None:
+            pretrained = 'openai'  # Use OpenAI pretrained weights from open_clip
+        print(f"Note: Ignoring local checkpoint {name}, using open_clip pretrained weights ({pretrained}) for {openclip_name}")
         state_dict = None
     else:
-        pretrained = 'openai'  # Use OpenAI weights
+        if pretrained is None:
+            pretrained = 'openai'  # Use OpenAI weights
         state_dict = None
 
     # Load the open_clip model

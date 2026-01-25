@@ -19,7 +19,7 @@ def _resolve_paths(repo_root):
     }
 
 
-def _write_runtime_config(base_config, output_dir, voc_root, clip_pretrain_path):
+def _write_runtime_config(base_config, output_dir, voc_root, clip_pretrain_path, clip_pretrained=None):
     os.makedirs(output_dir, exist_ok=True)
     with open(base_config, "r") as f:
         content = f.read()
@@ -41,6 +41,19 @@ def _write_runtime_config(base_config, output_dir, voc_root, clip_pretrain_path)
         rf"\1{clip_pretrain_path}\3",
         content,
     )
+    if clip_pretrained is not None:
+        if re.search(r"clip_pretrained:\s*'[^']*'", content):
+            content = re.sub(
+                r"(clip_pretrained:\s*')([^']*)(')",
+                rf"\1{clip_pretrained}\3",
+                content,
+            )
+        else:
+            content = re.sub(
+                r"(clip_pretrain_path:\s*'[^']*'\n)",
+                rf"\1  clip_pretrained: '{clip_pretrained}'\n",
+                content,
+            )
 
     output_path = os.path.join(output_dir, "voc_attn_reg_runtime.yaml")
     with open(output_path, "w") as f:
@@ -117,7 +130,7 @@ def _prepare_single_class_dataset(src_img_dir, class_name, set_dir, dest_dir, co
     _write_imagesets(set_dir, class_name, basenames)
 
 
-def main(repo_root, src_img_dir, setup_data, class_name):
+def main(repo_root, src_img_dir, setup_data, class_name, clip_pretrained):
     if class_name:
         os.environ["CLIP_TEXT_VERSION"] = class_name
 
@@ -131,6 +144,7 @@ def main(repo_root, src_img_dir, setup_data, class_name):
         paths["config_dir"],
         paths["voc_root"],
         paths["clip_pretrain_path"],
+        clip_pretrained,
     )
 
     if setup_data:
@@ -181,7 +195,12 @@ if __name__ == "__main__":
         action="store_false",
         help="Skip data setup steps.",
     )
+    parser.add_argument(
+        "--clip-pretrained",
+        default="laion2b_s34b_b88k",
+        help="OpenCLIP pretrained tag or local checkpoint (e.g., openai, laion2b_s34b_b88k).",
+    )
     parser.set_defaults(setup_data=False)
     args = parser.parse_args()
 
-    main(args.repo_root, args.src_img_dir, args.setup_data, args.class_name)
+    main(args.repo_root, args.src_img_dir, args.setup_data, args.class_name, args.clip_pretrained)

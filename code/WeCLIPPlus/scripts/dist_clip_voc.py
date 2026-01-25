@@ -249,9 +249,11 @@ def train(cfg):
     #                         drop_last=False)
 
 
+    clip_pretrained = cfg.clip_init.get("clip_pretrained", None)
     model = WeCLIP_Plus(
         num_classes=cfg.dataset.num_classes,
         clip_model=cfg.clip_init.clip_pretrain_path,
+        clip_pretrained=clip_pretrained,
         dino_model=cfg.dino_init.dino_model,
         dino_fts_dim = cfg.dino_init.dino_fts_fuse_dim,
         decoder_layers = cfg.dino_init.decoder_layer,

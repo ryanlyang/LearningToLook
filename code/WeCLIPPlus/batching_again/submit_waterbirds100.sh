@@ -6,12 +6,12 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=24
 #SBATCH --mem=64G
-#SBATCH --output=/home/ryreu/guided_cnn/logsWaterSwitch/open_waterbirds_95_seg_%j.out
-#SBATCH --error=/home/ryreu/guided_cnn/logsWaterSwitch/open_waterbirds_95_seg_%j.err
+#SBATCH --output=/home/ryreu/guided_cnn/logsWaterbird/waterbirds_100_seg_%j.out
+#SBATCH --error=/home/ryreu/guided_cnn/logsWaterbird/waterbirds_100_seg_%j.err
 #SBATCH --signal=TERM@120
 
 set -Eeuo pipefail
-mkdir -p /home/ryreu/guided_cnn/logsWaterSwitch
+mkdir -p /home/ryreu/guided_cnn/logsWaterbird
 
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate learntolook
@@ -23,7 +23,7 @@ export MKL_NUM_THREADS="${SLURM_CPUS_PER_TASK:-1}"
 export NUMEXPR_NUM_THREADS="${SLURM_CPUS_PER_TASK:-1}"
 export PYTHONNOUSERSITE=1
 
-cd /home/ryreu/guided_cnn/waterbirds/newCLIP/LearningToLook/code/WeCLIPPlus
+cd /home/ryreu/guided_cnn/waterbirds/L100/LearningToLook/code/WeCLIPPlus
 export PYTHONPATH="$PWD:${PYTHONPATH:-}"
 
 echo "[$(date)] Host: $(hostname)"
@@ -37,6 +37,6 @@ python -c "import open_clip" 2>/dev/null || {
 
 srun --unbuffered python -u generate_pseudo_masks_waterbirds.py \
   --setup-data \
-  --repo-root "/home/ryreu/guided_cnn/waterbirds/newCLIP/LearningToLook" \
-  --src-img-dir "/home/ryreu/guided_cnn/waterbirds/waterbird_complete95_forest2water2" \
+  --repo-root "/home/ryreu/guided_cnn/waterbirds/L100/LearningToLook" \
+  --src-img-dir "/home/ryreu/guided_cnn/waterbirds/waterbird_1.0_forest2water2" \
   --class-name "bird"
