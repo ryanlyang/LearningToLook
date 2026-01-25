@@ -23,7 +23,7 @@ export MKL_NUM_THREADS="${SLURM_CPUS_PER_TASK:-1}"
 export NUMEXPR_NUM_THREADS="${SLURM_CPUS_PER_TASK:-1}"
 export PYTHONNOUSERSITE=1
 
-cd /home/ryreu/guided_cnn/waterbirds/New_Teach/LearningToLook/code/WeCLIPPlus
+cd /home/ryreu/guided_cnn/waterbirds/New_Teach/L100/LearningToLook/code/WeCLIPPlus
 export PYTHONPATH="$PWD:${PYTHONPATH:-}"
 
 echo "[$(date)] Host: $(hostname)"
@@ -37,6 +37,6 @@ python -c "import open_clip" 2>/dev/null || {
 
 srun --unbuffered python -u generate_pseudo_masks_waterbirds.py \
   --setup-data \
-  --repo-root "/home/ryreu/guided_cnn/waterbirds/New_Teach/LearningToLook" \
+  --repo-root "/home/ryreu/guided_cnn/waterbirds/New_Teach/L100/LearningToLook" \
   --src-img-dir "/home/ryreu/guided_cnn/waterbirds/waterbird_1.0_forest2water2"\
   --class-name "bird"
