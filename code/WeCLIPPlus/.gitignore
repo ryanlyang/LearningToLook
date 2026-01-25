@@ -14,6 +14,7 @@ VOCdevkit/VOC2012/ImgStore/
 
 pretrained/ViT-B-16.pt
 
+pretrained/dino_xcit_medium_24_p16_pretrain.pth
 #I like that
 
 
