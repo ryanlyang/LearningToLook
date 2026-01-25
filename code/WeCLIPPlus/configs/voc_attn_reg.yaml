@@ -1,6 +1,6 @@
 dataset:
-  root_dir: '/home/ryreu/guided_cnn/code/SwitchDINO/LearningToLook/code/WeCLIPPlus/VOCdevkit/VOC2012'
-  name_list_dir: '/home/ryreu/guided_cnn/code/SwitchDINO/LearningToLook/code/WeCLIPPlus/VOCdevkit/VOC2012/ImageSets/Main'
+  root_dir: '/home/ryreu/guided_cnn/code/SwitchCLIP/LearningToLook/code/WeCLIPPlus/VOCdevkit/VOC2012'
+  name_list_dir: '/home/ryreu/guided_cnn/code/SwitchCLIP/LearningToLook/code/WeCLIPPlus/VOCdevkit/VOC2012/ImageSets/Main'
   num_classes: 2
   crop_size: 320 # 320 for clip-16
   resize_range: [512, 2048]
@@ -38,7 +38,7 @@ scheduler:
   power: 1.0
 
 clip_init:
-  clip_pretrain_path: '/home/ryreu/guided_cnn/code/SwitchDINO/LearningToLook/code/WeCLIPPlus/pretrained/ViT-B-16.pt'
+  clip_pretrain_path: '/home/ryreu/guided_cnn/code/SwitchCLIP/LearningToLook/code/WeCLIPPlus/pretrained/ViT-B-16.pt'
   embedding_dim: 256
   in_channels: [768, 768,768,768]
   clip_flag: 16 # if VIT-B-16, set as 16
@@ -46,19 +46,12 @@ clip_init:
 
 #-----------------dino-------------------------
 #use_dino: True
-# Using XCiT-Small-12 with patch size 16 (ACTIVE)
 dino_init:
-  dino_model: 'xcit_small_12_p16'
-  dino_fts_fuse_dim: 384
-  decoder_layer: 3
+  #dino_pretrain_path: 'C:/Users/ryreu/…/pretrained/dino_vits16_pretrain.pth'
+  dino_model: 'dinov2_vitl14_reg'
+  dino_fts_fuse_dim: 1024
+  decoder_layer: 5
 
-# Alternative: DINOv1 ViT-Small with patch size 16
-#dino_init:
-#  dino_model: 'dino_vits16'
-#  dino_fts_fuse_dim: 384
-#  decoder_layer: 3
-
-# Alternative: DINOv2 ViT-Small with patch size 14
 #dino_init:
 #  dino_model: 'dinov2_vits14_reg'
 #  dino_fts_fuse_dim: 384

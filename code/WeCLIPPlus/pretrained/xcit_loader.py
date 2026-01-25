@@ -380,17 +380,57 @@ def xcit_small_12_p16(pretrained=True, pretrained_path=None):
     return model
 
 
+def xcit_medium_24_p16(pretrained=True, pretrained_path=None):
+    """
+    Load XCiT-Medium-24/16 model trained with DINO.
+
+    Args:
+        pretrained: Whether to load pretrained weights
+        pretrained_path: Path to pretrained weights file
+
+    Returns:
+        XCiT model
+    """
+    import os
+
+    model = XCiT(
+        patch_size=16, embed_dim=512, depth=24, num_heads=8, mlp_ratio=4,
+        qkv_bias=True, norm_layer=partial(nn.LayerNorm, eps=1e-6), eta=1.0, cls_attn_layers=2)
+
+    if pretrained:
+        if pretrained_path is None:
+            # Default path
+            pretrained_path = os.path.join(
+                os.path.dirname(__file__),
+                'dino_xcit_medium_24_p16_pretrain.pth'
+            )
+
+        if os.path.exists(pretrained_path):
+            print(f"Loading XCiT weights from: {pretrained_path}")
+            state_dict = torch.load(pretrained_path, map_location='cpu')
+            model.load_state_dict(state_dict, strict=True)
+            print("Successfully loaded XCiT-Medium-24/16 DINO weights")
+        else:
+            print(f"Warning: Pretrained weights not found at {pretrained_path}")
+            print("Using randomly initialized weights")
+
+    return model
+
+
 # Model metadata
 XCIT_MODELS = {
     'xcit_small_12_p16': 'xcit_small_12_p16',
+    'xcit_medium_24_p16': 'xcit_medium_24_p16',
 }
 
 XCIT_DIMS = {
     'xcit_small_12_p16': 384,
+    'xcit_medium_24_p16': 512,
 }
 
 XCIT_PATCH_SIZES = {
     'xcit_small_12_p16': 16,
+    'xcit_medium_24_p16': 16,
 }
 
 
@@ -410,6 +450,7 @@ def get_xcit_patch_size(model_name):
 
 __all__ = [
     'xcit_small_12_p16',
+    'xcit_medium_24_p16',
     'get_xcit_feature_dim',
     'get_xcit_patch_size',
     'XCIT_MODELS',
