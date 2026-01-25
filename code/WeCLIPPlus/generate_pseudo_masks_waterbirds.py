@@ -197,7 +197,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--clip-pretrained",
-        default="laion2b_s34b_b88k",
+        default="metaclip_fullcc",
         help="OpenCLIP pretrained tag or local checkpoint (e.g., openai, laion2b_s34b_b88k).",
     )
     parser.set_defaults(setup_data=False)

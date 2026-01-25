@@ -39,4 +39,5 @@ srun --unbuffered python -u generate_pseudo_masks_waterbirds.py \
   --setup-data \
   --repo-root "/home/ryreu/guided_cnn/waterbirds/newCLIP/LearningToLook" \
   --src-img-dir "/home/ryreu/guided_cnn/waterbirds/waterbird_complete95_forest2water2" \
-  --class-name "bird"
+  --class-name "bird" \
+  --clip-pretrained metaclip_fullcc
