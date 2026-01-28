@@ -70,64 +70,64 @@
 # ]
 
 
-BACKGROUND_CATEGORY = [
-    # water / shoreline / coastal structures
-    'pond','marsh','wetland','swamp','bay','harbor','port','dock','pier','wharf','jetty','breakwater',
-    'shore','shoreline','coast','coastline','sandbar','mud','mudflat','tidal flat','tidepool','estuary',
-    'delta','inlet','cove','lagoon','channel','canal','creek','brook','waterfall','rapids',
-    'boat','canoe','kayak','raft','sailboat','motorboat','yacht','ship','barge','ferry',
-    'buoy','lifeguard tower','lighthouse','seawall','boat ramp','marina','boardwalk','promenade',
-    'ripples','foam','spray','mist','reflection','wet sand','driftwood','seashell','pebbles','gravel',
+# BACKGROUND_CATEGORY = [
+#     # water / shoreline / coastal structures
+#     'pond','marsh','wetland','swamp','bay','harbor','port','dock','pier','wharf','jetty','breakwater',
+#     'shore','shoreline','coast','coastline','sandbar','mud','mudflat','tidal flat','tidepool','estuary',
+#     'delta','inlet','cove','lagoon','channel','canal','creek','brook','waterfall','rapids',
+#     'boat','canoe','kayak','raft','sailboat','motorboat','yacht','ship','barge','ferry',
+#     'buoy','lifeguard tower','lighthouse','seawall','boat ramp','marina','boardwalk','promenade',
+#     'ripples','foam','spray','mist','reflection','wet sand','driftwood','seashell','pebbles','gravel',
 
-    # landforms / terrain
-    'meadow','prairie','savanna','pasture','farmland','orchard','vineyard','grove','thicket','underbrush',
-    'trail','path','footpath','dirt path','hiking trail','canyon','ravine','gorge','plateau','ridge',
-    'dune','sand','muddy ground','clay','silt','stones','cobblestones','outcrop','scree','talus',
-    'lava','volcanic rock','basalt','granite','cave','sinkhole','glacier','iceberg',
-    'puddle','mud puddle','snowbank','slush',
+#     # landforms / terrain
+#     'meadow','prairie','savanna','pasture','farmland','orchard','vineyard','grove','thicket','underbrush',
+#     'trail','path','footpath','dirt path','hiking trail','canyon','ravine','gorge','plateau','ridge',
+#     'dune','sand','muddy ground','clay','silt','stones','cobblestones','outcrop','scree','talus',
+#     'lava','volcanic rock','basalt','granite','cave','sinkhole','glacier','iceberg',
+#     'puddle','mud puddle','snowbank','slush',
 
-    # vegetation (non-bird-related)
-    'reeds','cattails','tall grass','weeds','shrubs','hedge','moss','lichen','algae','seaweed',
-    'lilypad','water plants','flowers','wildflowers','fern','palm','palm tree','pine','evergreen',
-    'log','stump','bark','roots','fallen tree','brush','mulch',
+#     # vegetation (non-bird-related)
+#     'reeds','cattails','tall grass','weeds','shrubs','hedge','moss','lichen','algae','seaweed',
+#     'lilypad','water plants','flowers','wildflowers','fern','palm','palm tree','pine','evergreen',
+#     'log','stump','bark','roots','fallen tree','brush','mulch',
 
-    # human-made outdoor stuff
-    'dock posts','rope','net','fishing gear','cooler','bucket','crate','barrel','drum','trash can',
-    'plastic bottle','litter','debris','drain','storm drain','culvert','ditch','irrigation',
-    'bridge railing','guardrail','concrete','asphalt','pavement','sidewalk','curb','parking lot',
-    'crosswalk','traffic light','streetlight','utility pole','power lines','telephone lines',
-    'billboard','graffiti','construction','scaffolding','floodlight','fountain',
-    'bench','picnic table','gazebo','playground','slide','swing set',
-    'tent','campground','campfire','fire pit','grill','smoke',
+#     # human-made outdoor stuff
+#     'dock posts','rope','net','fishing gear','cooler','bucket','crate','barrel','drum','trash can',
+#     'plastic bottle','litter','debris','drain','storm drain','culvert','ditch','irrigation',
+#     'bridge railing','guardrail','concrete','asphalt','pavement','sidewalk','curb','parking lot',
+#     'crosswalk','traffic light','streetlight','utility pole','power lines','telephone lines',
+#     'billboard','graffiti','construction','scaffolding','floodlight','fountain',
+#     'bench','picnic table','gazebo','playground','slide','swing set',
+#     'tent','campground','campfire','fire pit','grill','smoke',
 
-    # buildings / urban contexts
-    'barn','shed','cabin','hut','warehouse','factory','industrial site','dockyard',
-    'apartment','condo','skyscraper','downtown','suburb','neighborhood','courtyard',
-    'balcony','porch','stairs','doorway','window','brick','stone wall','wooden wall','metal fence',
-    'chain-link fence','gate','railing','roof','chimney',
+#     # buildings / urban contexts
+#     'barn','shed','cabin','hut','warehouse','factory','industrial site','dockyard',
+#     'apartment','condo','skyscraper','downtown','suburb','neighborhood','courtyard',
+#     'balcony','porch','stairs','doorway','window','brick','stone wall','wooden wall','metal fence',
+#     'chain-link fence','gate','railing','roof','chimney',
 
-    # weather / sky / lighting
-    'sunset','sunrise','twilight','dusk','dawn','shade','shadow','sun glare',
-    'fog','haze','smog','rain','drizzle','storm','thunderstorm','lightning',
-    'wind','overcast','blue sky','night','moonlight','streetlights',
+#     # weather / sky / lighting
+#     'sunset','sunrise','twilight','dusk','dawn','shade','shadow','sun glare',
+#     'fog','haze','smog','rain','drizzle','storm','thunderstorm','lightning',
+#     'wind','overcast','blue sky','night','moonlight','streetlights',
 
-    # vehicles and common objects
-    'car','truck','pickup','van','bus','train','freight car','tractor','bulldozer','excavator',
-    'bicycle','motorcycle','scooter','boat trailer','parking meter',
-    'cone','barrier','signpost','mailbox','bench','table','chair','umbrella','towel','blanket',
-    'backpack','bag','cooler','basket','bottle','cup',
+#     # vehicles and common objects
+#     'car','truck','pickup','van','bus','train','freight car','tractor','bulldozer','excavator',
+#     'bicycle','motorcycle','scooter','boat trailer','parking meter',
+#     'cone','barrier','signpost','mailbox','bench','table','chair','umbrella','towel','blanket',
+#     'backpack','bag','cooler','basket','bottle','cup',
 
-    # other animals (non-bird)
-    'dog','cat','horse','cow','goat','sheep','pig','deer','elk','moose',
-    'bear','fox','coyote','wolf','raccoon','skunk','rabbit','hare','squirrel',
-    'chipmunk','mouse','rat','beaver','otter','seal','sea lion','dolphin','whale',
-    'turtle','lizard','snake','frog','toad','fish','crab','lobster','shrimp','clam',
-    'snail','slug','butterfly','moth','bee','wasp','ant','beetle','dragonfly','mosquito',
+#     # other animals (non-bird)
+#     'dog','cat','horse','cow','goat','sheep','pig','deer','elk','moose',
+#     'bear','fox','coyote','wolf','raccoon','skunk','rabbit','hare','squirrel',
+#     'chipmunk','mouse','rat','beaver','otter','seal','sea lion','dolphin','whale',
+#     'turtle','lizard','snake','frog','toad','fish','crab','lobster','shrimp','clam',
+#     'snail','slug','butterfly','moth','bee','wasp','ant','beetle','dragonfly','mosquito',
 
-    # indoor-ish / weird but plausible (zoos, parks, human spaces)
-    'zoo enclosure','aquarium tank','glass','tile','concrete floor','wood floor','carpet',
-    'cage','wire mesh','enclosure fence','handrail','poster','banner','painting',
-]
+#     # indoor-ish / weird but plausible (zoos, parks, human spaces)
+#     'zoo enclosure','aquarium tank','glass','tile','concrete floor','wood floor','carpet',
+#     'cage','wire mesh','enclosure fence','handrail','poster','banner','painting',
+# ]
 
 
 import os
@@ -153,9 +153,12 @@ import os
 #     'bird', 'cat', 'crab', 'fishing rod', 'giraffe', 'horse', 'lizard', 'owl', 'sailboat', 'shrimp', 'tiger', 'wheat',
 #     'bus', 'chair', 'crocodile', 'flower', 'goose', 'hot air balloon', 'mailbox', 'pineapple', 'scooter', 'spider', 'tortoise', 'wolf',
 # ]
-_all_class_names = ['bird']
+_all_class_names = ['digit']
 
-_all_new_class_names = ['bird']
+_all_new_class_names = ['digit']
+
+
+BACKGROUND_CATEGORY = ['background', 'black', 'dark', 'nothing']
 
 # Check for CLIP_TEXT_VERSION environment variable
 _version = os.environ.get('CLIP_TEXT_VERSION', None)

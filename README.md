@@ -27,6 +27,16 @@ We recommend using a `conda` environment.
     Download the CLIP ViT-B/16 checkpoint and place it at code/WeCLIPPlus/pretrained/ViT-B-16.pt:
     https://openaipublic.azureedge.net/clip/models/5806e77cd80f8b59890b7e101eabd078d9fb84e6937f9e85e4ecb61988df416f/ViT-B-16.pt
 
+4. **Choose CLIP Backend (OpenCLIP vs OpenAI CLIP):**
+    By default, WeCLIP+ uses the OpenCLIP adapter. To switch to the original OpenAI CLIP implementation:
+    ```sh
+    export CLIP_BACKEND=openai
+    ```
+    To switch back to OpenCLIP:
+    ```sh
+    export CLIP_BACKEND=openclip
+    ```
+
 
 ### File Structure
 
