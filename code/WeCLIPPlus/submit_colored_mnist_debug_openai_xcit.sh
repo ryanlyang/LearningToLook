@@ -6,8 +6,8 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
-#SBATCH --output=/home/ryreu/guided_cnn/logsMNIST/colored_mnist_%j.out
-#SBATCH --error=/home/ryreu/guided_cnn/logsMNIST/colored_mnist_%j.err
+#SBATCH --output=/home/ryreu/guided_cnn/logsMNIST/colored_mnist_openai_xcit_%j.out
+#SBATCH --error=/home/ryreu/guided_cnn/logsMNIST/colored_mnist_openai_xcit_%j.err
 #SBATCH --signal=TERM@120
 
 set -Eeuo pipefail
@@ -22,7 +22,11 @@ SPLIT="train"
 CLASS_NAME="digit"
 SETUP_DATA=1
 SORT_BY_LABEL=0
-RESULTS_DIR="results_mnist"
+RESULTS_DIR="results_mnist_openai_xcit"
+
+DINO_MODEL="xcit_medium_24_p16"
+DINO_FTS_DIM=512
+# DINO_DECODER_LAYERS=5
 
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate "${CONDA_ENV}"
@@ -44,16 +48,13 @@ srun --unbuffered python -u "${REPO_ROOT}/data/color_mnist.py"
 cd "${WECLIP_ROOT}"
 export PYTHONPATH="${WECLIP_ROOT}:${PYTHONPATH:-}"
 
-python -c "import open_clip" 2>/dev/null || {
-  echo "Installing open_clip_torch..."
-  pip install -q open_clip_torch
-}
-
 ARGS=(--repo-root "${REPO_ROOT}"
       --src-img-dir "${SRC_IMG_DIR}"
       --split "${SPLIT}"
       --class-name "${CLASS_NAME}"
-      --results-dir "${RESULTS_DIR}")
+      --results-dir "${RESULTS_DIR}"
+      --dino-model "${DINO_MODEL}"
+      --dino-fts-dim "${DINO_FTS_DIM}")
 
 if [[ "${SETUP_DATA}" -eq 1 ]]; then
   ARGS+=(--setup-data)

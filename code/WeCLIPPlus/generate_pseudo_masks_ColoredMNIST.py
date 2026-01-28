@@ -24,7 +24,15 @@ def _resolve_paths(repo_root):
     }
 
 
-def _write_runtime_config(base_config, output_dir, voc_root, clip_pretrain_path):
+def _write_runtime_config(
+    base_config,
+    output_dir,
+    voc_root,
+    clip_pretrain_path,
+    dino_model=None,
+    dino_fts_dim=None,
+    dino_decoder_layers=None,
+):
     os.makedirs(output_dir, exist_ok=True)
     with open(base_config, "r") as f:
         content = f.read()
@@ -46,6 +54,25 @@ def _write_runtime_config(base_config, output_dir, voc_root, clip_pretrain_path)
         rf"\1{clip_pretrain_path}\3",
         content,
     )
+
+    if dino_model:
+        content = re.sub(
+            r"(dino_model:\s*')([^']*)(')",
+            rf"\1{dino_model}\3",
+            content,
+        )
+    if dino_fts_dim is not None:
+        content = re.sub(
+            r"(dino_fts_fuse_dim:\s*)([0-9]+)",
+            rf"\1{int(dino_fts_dim)}",
+            content,
+        )
+    if dino_decoder_layers is not None:
+        content = re.sub(
+            r"(decoder_layer:\s*)([0-9]+)",
+            rf"\1{int(dino_decoder_layers)}",
+            content,
+        )
 
     output_path = os.path.join(output_dir, "voc_attn_reg_runtime.yaml")
     with open(output_path, "w") as f:
@@ -139,7 +166,18 @@ def _resolve_dataset_root(src_img_dir):
     return None
 
 
-def main(repo_root, src_img_dir, setup_data, class_name, split, sort_by_label):
+def main(
+    repo_root,
+    src_img_dir,
+    setup_data,
+    class_name,
+    split,
+    sort_by_label,
+    results_dir,
+    dino_model,
+    dino_fts_dim,
+    dino_decoder_layers,
+):
     if class_name:
         os.environ["CLIP_TEXT_VERSION"] = class_name
 
@@ -153,6 +191,9 @@ def main(repo_root, src_img_dir, setup_data, class_name, split, sort_by_label):
         paths["config_dir"],
         paths["voc_root"],
         paths["clip_pretrain_path"],
+        dino_model=dino_model,
+        dino_fts_dim=dino_fts_dim,
+        dino_decoder_layers=dino_decoder_layers,
     )
 
     if src_img_dir is None:
@@ -178,6 +219,12 @@ def main(repo_root, src_img_dir, setup_data, class_name, split, sort_by_label):
 
     convert_to_jpg.convert_to_jpg(paths["dest_dir"], True)
     final_path = dist_clip_voc.main(config)
+
+    if results_dir:
+        if not os.path.isabs(results_dir):
+            results_dir = os.path.join(paths["weclip_root"], results_dir)
+        test_msc_flip_voc.args.work_dir = results_dir
+
     test_msc_flip_voc.outer_main(final_path, config)
 
     if sort_by_label:
@@ -214,6 +261,28 @@ if __name__ == "__main__":
         help="Foreground class name for ColorMNIST (default: digit).",
     )
     parser.add_argument(
+        "--results-dir",
+        default="results",
+        help="Output directory for prediction_cmap (default: results).",
+    )
+    parser.add_argument(
+        "--dino-model",
+        default=None,
+        help="Override DINO model name in config (e.g., xcit_medium_24_p16).",
+    )
+    parser.add_argument(
+        "--dino-fts-dim",
+        type=int,
+        default=None,
+        help="Override dino_fts_fuse_dim in config (e.g., 512 for XCiT-Medium).",
+    )
+    parser.add_argument(
+        "--dino-decoder-layers",
+        type=int,
+        default=None,
+        help="Override decoder_layer in config.",
+    )
+    parser.add_argument(
         "--sort-by-label",
         action="store_true",
         help="Sort ColorMNIST train/test images into label subfolders after masks are generated.",
@@ -240,4 +309,8 @@ if __name__ == "__main__":
         args.class_name,
         args.split,
         args.sort_by_label,
+        args.results_dir,
+        args.dino_model,
+        args.dino_fts_dim,
+        args.dino_decoder_layers,
     )

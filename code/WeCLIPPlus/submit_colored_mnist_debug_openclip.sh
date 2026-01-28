@@ -6,8 +6,8 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
-#SBATCH --output=/home/ryreu/guided_cnn/logsMNIST/colored_mnist_%j.out
-#SBATCH --error=/home/ryreu/guided_cnn/logsMNIST/colored_mnist_%j.err
+#SBATCH --output=/home/ryreu/guided_cnn/logsMNIST/colored_mnist_openclip_%j.out
+#SBATCH --error=/home/ryreu/guided_cnn/logsMNIST/colored_mnist_openclip_%j.err
 #SBATCH --signal=TERM@120
 
 set -Eeuo pipefail
@@ -22,12 +22,12 @@ SPLIT="train"
 CLASS_NAME="digit"
 SETUP_DATA=1
 SORT_BY_LABEL=0
-RESULTS_DIR="results_mnist"
+RESULTS_DIR="results_mnist_openclip"
 
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate "${CONDA_ENV}"
 
-export CLIP_BACKEND="openai"
+export CLIP_BACKEND="openclip"
 export TF_CPP_MIN_LOG_LEVEL=3
 export TF_ENABLE_ONEDNN_OPTS=0
 export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-1}"
