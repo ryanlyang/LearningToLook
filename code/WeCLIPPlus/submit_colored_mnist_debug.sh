@@ -13,7 +13,7 @@
 set -Eeuo pipefail
 mkdir -p /home/ryreu/guided_cnn/logsMNIST
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+REPO_ROOT="/home/ryreu/guided_cnn/MNIST_AGAIN/LearningToLook"
 WECLIP_ROOT="${REPO_ROOT}/code/WeCLIPPlus"
 
 CONDA_ENV="learntolook"
@@ -26,6 +26,7 @@ SORT_BY_LABEL=0
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate "${CONDA_ENV}"
 
+export CLIP_BACKEND="openai"
 export TF_CPP_MIN_LOG_LEVEL=3
 export TF_ENABLE_ONEDNN_OPTS=0
 export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-1}"
@@ -33,11 +34,14 @@ export MKL_NUM_THREADS="${SLURM_CPUS_PER_TASK:-1}"
 export NUMEXPR_NUM_THREADS="${SLURM_CPUS_PER_TASK:-1}"
 export PYTHONNOUSERSITE=1
 
-cd "${WECLIP_ROOT}"
-export PYTHONPATH="${WECLIP_ROOT}:${PYTHONPATH:-}"
-
 echo "[$(date)] Host: $(hostname)"
 which python
+
+echo "Generating ColorMNIST dataset..."
+srun --unbuffered python -u "${REPO_ROOT}/data/color_mnist.py"
+
+cd "${WECLIP_ROOT}"
+export PYTHONPATH="${WECLIP_ROOT}:${PYTHONPATH:-}"
 
 python -c "import open_clip" 2>/dev/null || {
   echo "Installing open_clip_torch..."
