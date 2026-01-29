@@ -47,6 +47,8 @@ echo "Using existing DecoyMNIST dataset at: ${SRC_IMG_DIR}"
 cd "${WECLIP_ROOT}"
 export PYTHONPATH="${WECLIP_ROOT}:${PYTHONPATH:-}"
 
+rm -f "${WECLIP_ROOT}/configs/voc_attn_reg_runtime.yaml"
+
 ARGS=(--repo-root "${REPO_ROOT}"
       --src-img-dir "${SRC_IMG_DIR}"
       --split "${SPLIT}"
