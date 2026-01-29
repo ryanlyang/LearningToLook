@@ -38,8 +38,7 @@ export PYTHONNOUSERSITE=1
 echo "[$(date)] Host: $(hostname)"
 which python
 
-echo "Generating ColorMNIST dataset..."
-srun --unbuffered python -u "${REPO_ROOT}/data/color_mnist.py"
+echo "Using existing ColorMNIST dataset at: ${SRC_IMG_DIR}"
 
 cd "${WECLIP_ROOT}"
 export PYTHONPATH="${WECLIP_ROOT}:${PYTHONPATH:-}"

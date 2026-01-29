@@ -34,50 +34,69 @@ def _write_runtime_config(
     dino_decoder_layers=None,
 ):
     os.makedirs(output_dir, exist_ok=True)
-    with open(base_config, "r") as f:
-        content = f.read()
-
     name_list_dir = os.path.join(voc_root, "ImageSets", "Main")
 
-    content = re.sub(
-        r"(root_dir:\s*')([^']*)(')",
-        rf"\1{voc_root}\3",
-        content,
-    )
-    content = re.sub(
-        r"(name_list_dir:\s*')([^']*)(')",
-        rf"\1{name_list_dir}\3",
-        content,
-    )
-    content = re.sub(
-        r"(clip_pretrain_path:\s*')([^']*)(')",
-        rf"\1{clip_pretrain_path}\3",
-        content,
-    )
+    try:
+        from omegaconf import OmegaConf
 
-    if dino_model:
+        cfg = OmegaConf.load(base_config)
+        cfg.dataset.root_dir = voc_root
+        cfg.dataset.name_list_dir = name_list_dir
+        cfg.clip_init.clip_pretrain_path = clip_pretrain_path
+        if dino_model:
+            cfg.dino_init.dino_model = dino_model
+        if dino_fts_dim is not None:
+            cfg.dino_init.dino_fts_fuse_dim = int(dino_fts_dim)
+        if dino_decoder_layers is not None:
+            cfg.dino_init.decoder_layer = int(dino_decoder_layers)
+
+        output_path = os.path.join(output_dir, "voc_attn_reg_runtime.yaml")
+        OmegaConf.save(cfg, output_path)
+        return output_path
+    except Exception:
+        # Fallback to text replacement if OmegaConf is unavailable.
+        with open(base_config, "r") as f:
+            content = f.read()
+
         content = re.sub(
-            r"(dino_model:\s*')([^']*)(')",
-            rf"\1{dino_model}\3",
+            r"(root_dir:\s*')([^']*)(')",
+            rf"\1{voc_root}\3",
             content,
         )
-    if dino_fts_dim is not None:
         content = re.sub(
-            r"(dino_fts_fuse_dim:\s*)([0-9]+)",
-            rf"\1{int(dino_fts_dim)}",
+            r"(name_list_dir:\s*')([^']*)(')",
+            rf"\1{name_list_dir}\3",
             content,
         )
-    if dino_decoder_layers is not None:
         content = re.sub(
-            r"(decoder_layer:\s*)([0-9]+)",
-            rf"\1{int(dino_decoder_layers)}",
+            r"(clip_pretrain_path:\s*')([^']*)(')",
+            rf"\1{clip_pretrain_path}\3",
             content,
         )
 
-    output_path = os.path.join(output_dir, "voc_attn_reg_runtime.yaml")
-    with open(output_path, "w") as f:
-        f.write(content)
-    return output_path
+        if dino_model:
+            content = re.sub(
+                r"(dino_model:\s*')([^']*)(')",
+                rf"\1{dino_model}\3",
+                content,
+            )
+        if dino_fts_dim is not None:
+            content = re.sub(
+                r"(dino_fts_fuse_dim:\s*)([0-9]+)",
+                rf"\1{int(dino_fts_dim)}",
+                content,
+            )
+        if dino_decoder_layers is not None:
+            content = re.sub(
+                r"(decoder_layer:\s*)([0-9]+)",
+                rf"\1{int(dino_decoder_layers)}",
+                content,
+            )
+
+        output_path = os.path.join(output_dir, "voc_attn_reg_runtime.yaml")
+        with open(output_path, "w") as f:
+            f.write(content)
+        return output_path
 
 
 _IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".gif"}

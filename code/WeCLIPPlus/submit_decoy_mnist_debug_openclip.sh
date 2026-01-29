@@ -38,8 +38,7 @@ export PYTHONNOUSERSITE=1
 echo "[$(date)] Host: $(hostname)"
 which python
 
-echo "Generating DecoyMNIST dataset..."
-srun --unbuffered python -u "${REPO_ROOT}/data/decoy_mnist.py"
+echo "Using existing DecoyMNIST dataset at: ${SRC_IMG_DIR}"
 
 cd "${WECLIP_ROOT}"
 export PYTHONPATH="${WECLIP_ROOT}:${PYTHONPATH:-}"
