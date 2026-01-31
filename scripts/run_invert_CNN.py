@@ -241,6 +241,7 @@ def train_model(model, weight_decay_on, dataloaders, dataset_sizes,
                 if is_train:
                     opt.zero_grad()
 
+                attn_loss_rev = torch.tensor(0.0, device=device)
                 with torch.set_grad_enabled(is_train):
                     outputs, feats = model(inputs)
                     _, preds = torch.max(outputs, 1)
@@ -271,7 +272,6 @@ def train_model(model, weight_decay_on, dataloaders, dataset_sizes,
                     else:
                         loss = nn.functional.cross_entropy(outputs, labels)
                         attn_loss = torch.tensor(0.0, device=outputs.device)
-                        attn_loss_rev = torch.tensor(0.0, device=outputs.device)
 
                     if is_train:
                         loss.backward()
