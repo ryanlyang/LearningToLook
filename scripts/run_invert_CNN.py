@@ -142,7 +142,7 @@ class GuidedImageFolder(Dataset):
 
 
 
-def compute_loss(outputs, labels, cams, gt_masks, kl_lambda, only_ce):
+def compute_loss(outputs, labels, cams, gt_masks, kl_lambda, only_attn):
     ce_loss = nn.functional.cross_entropy(outputs, labels)
     B, Hf, Wf = cams.shape
     cam_flat = cams.view(B, -1)
@@ -151,8 +151,8 @@ def compute_loss(outputs, labels, cams, gt_masks, kl_lambda, only_ce):
     gt_prob = gt_flat / (gt_flat.sum(dim=1, keepdim=True) + 1e-8)
     kl_div = nn.KLDivLoss(reduction='batchmean')
     attn_loss = kl_div(log_p, gt_prob)
-    if only_ce:
-        return ce_loss, attn_loss
+    if only_attn:
+        return attn_loss, attn_loss
     else:
         return ce_loss + kl_lambda * attn_loss, attn_loss
 
@@ -174,7 +174,7 @@ def compute_attn_losses(cams, gt_masks):
 
 def train_model(model, weight_decay_on, dataloaders, dataset_sizes,
                 attention_epoch, kl_lambda_start, num_epochs,
-                lr2, kl_incr, beta=1.0):
+                lr2, kl_incr, beta=1.0, test_loader=None):
     best_wts = copy.deepcopy(model.state_dict())
     best_optim = -100.0
     since = time.time()
@@ -281,6 +281,10 @@ def train_model(model, weight_decay_on, dataloaders, dataset_sizes,
                     best_optim = optim_num
                     best_wts = copy.deepcopy(model.state_dict())
 
+                if test_loader is not None:
+                    test_loss, test_acc = evaluate_test(model, test_loader)
+                    print(f"[TEST @ epoch {epoch + 1}] Loss: {test_loss:.4f}  Acc: {test_acc:.2f}%")
+
     print()
     time_elapsed = time.time() - since
     print(f"Training complete in {time_elapsed // 60:.0f}m {time_elapsed % 60:.0f}s")
@@ -381,7 +385,7 @@ def run_single(args, attn_epoch, kl_value):
     best_model, best_score = train_model(
         model, True, dataloaders, dataset_sizes,
         attn_epoch, kl_value, num_epochs,
-        lr2=learning_rate, kl_incr=(kl_value / 10), beta=1.0
+        lr2=learning_rate, kl_incr=(kl_value / 10), beta=1.0, test_loader=test_loader
     )
 
     # Evaluate once on TEST with the best val_in weights

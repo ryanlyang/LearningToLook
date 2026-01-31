@@ -1,6 +1,7 @@
 import os
 import re
 import shutil
+import sys
 
 # if you're running this script from the folder with the images, leave this as "."
 SOURCE_DIR = r"data\saved\colored2\test"
@@ -26,4 +27,7 @@ def main(src_dir):
     print("Done!")
 
 if __name__ == '__main__':
-    main(SOURCE_DIR)
+    target_dir = SOURCE_DIR
+    if len(sys.argv) > 1:
+        target_dir = sys.argv[1]
+    main(target_dir)
