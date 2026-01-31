@@ -128,13 +128,29 @@ class GuidedImageFolder(Dataset):
         self.images = datasets.ImageFolder(image_root, transform=image_transform)
         self.mask_root = mask_root
         self.mask_transform = mask_transform
+        self._mask_exts = (".png", ".jpg", ".jpeg")
+
+    def _resolve_mask_path(self, base):
+        candidates = [base]
+        if "_lbl" in base:
+            candidates.append(base.split("_lbl")[0])
+            candidates.append(re.sub(r"_lbl\d+$", "", base))
+            candidates.append(re.sub(r"_lbl\d+", "", base))
+
+        for stem in candidates:
+            for ext in self._mask_exts:
+                path = os.path.join(self.mask_root, stem + ext)
+                if os.path.exists(path):
+                    return path
+        tried = [os.path.join(self.mask_root, stem + ext) for stem in candidates for ext in self._mask_exts]
+        raise FileNotFoundError(f"Mask not found. Tried: {tried}")
     def __len__(self):
         return len(self.images)
     def __getitem__(self, idx):
         img, label = self.images[idx]
         path, _ = self.images.samples[idx]
         base = os.path.splitext(os.path.basename(path))[0]
-        mask_path = os.path.join(self.mask_root, base + ".png")
+        mask_path = self._resolve_mask_path(base)
         mask = Image.open(mask_path).convert("L")
         if self.mask_transform:
             mask = self.mask_transform(mask)
