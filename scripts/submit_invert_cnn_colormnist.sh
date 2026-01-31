@@ -17,7 +17,7 @@ REPO_ROOT="/home/ryreu/guided_cnn/MNIST_AGAIN/LearningToLook"
 CONDA_ENV="learntolook"
 
 DATA_PATH="${REPO_ROOT}/data/saved/ColorMNIST_images/digit"
-GT_PATH="${REPO_ROOT}/code/WeCLIPPlus/results/val/prediction_cmap"
+GT_PATH="${REPO_ROOT}/code/WeCLIPPlus/results_mnist/val/prediction_cmap"
 
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate "${CONDA_ENV}"
