@@ -39,5 +39,5 @@ echo "GT:   ${GT_PATH}"
 srun --unbuffered python -u scripts/run_guided_CNN.py \
   "${DATA_PATH}" \
   "${GT_PATH}" \
-  --attention_epoch 30 \
+  --attention_epoch 16 \
   --kl_lambda 160
