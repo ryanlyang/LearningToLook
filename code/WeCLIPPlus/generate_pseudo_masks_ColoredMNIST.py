@@ -1,7 +1,6 @@
 import argparse
 import os
 import re
-import shutil
 
 
 def _default_repo_root():
@@ -99,99 +98,9 @@ def _write_runtime_config(
         return output_path
 
 
-_IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".gif"}
-
-
-def _iter_image_files(root_dir):
-    for dirpath, _, filenames in os.walk(root_dir):
-        for fname in filenames:
-            ext = os.path.splitext(fname)[1].lower()
-            if ext in _IMAGE_EXTS:
-                yield os.path.join(dirpath, fname)
-
-
-def _make_image_id(src_img_dir, image_path):
-    rel_path = os.path.relpath(image_path, src_img_dir)
-    rel_no_ext = os.path.splitext(rel_path)[0]
-    flat = rel_no_ext.replace(os.sep, "_").replace("/", "_")
-    flat = re.sub(r"[^A-Za-z0-9_-]+", "_", flat).strip("_")
-    return flat
-
-
-def _write_imagesets(set_dir, class_name, basenames):
-    os.makedirs(set_dir, exist_ok=True)
-    train_path = os.path.join(set_dir, "train.txt")
-    val_path = os.path.join(set_dir, "val.txt")
-    cls_train_path = os.path.join(set_dir, f"{class_name}_train.txt")
-    cls_val_path = os.path.join(set_dir, f"{class_name}_val.txt")
-
-    with open(train_path, "w") as f_train:
-        f_train.write("\n".join(basenames) + "\n")
-    with open(val_path, "w") as f_val:
-        f_val.write("\n".join(basenames) + "\n")
-
-    with open(cls_train_path, "w") as f_cls_train:
-        f_cls_train.writelines(f"{b} 1\n" for b in basenames)
-    with open(cls_val_path, "w") as f_cls_val:
-        f_cls_val.writelines(f"{b} 1\n" for b in basenames)
-
-
-def _prepare_single_class_dataset(src_img_dir, class_name, set_dir, dest_dir, copy_images=True):
-    os.makedirs(dest_dir, exist_ok=True)
-    basenames = []
-    seen = set()
-
-    for image_path in _iter_image_files(src_img_dir):
-        base_id = _make_image_id(src_img_dir, image_path)
-        unique_id = base_id
-        suffix = 1
-        while unique_id in seen:
-            unique_id = f"{base_id}_{suffix}"
-            suffix += 1
-        seen.add(unique_id)
-
-        ext = os.path.splitext(image_path)[1].lower() or ".jpg"
-        dst_path = os.path.join(dest_dir, unique_id + ext)
-        if not os.path.exists(dst_path):
-            if copy_images:
-                shutil.copyfile(image_path, dst_path)
-            else:
-                shutil.move(image_path, dst_path)
-
-        basenames.append(unique_id)
-
-    basenames = sorted(basenames)
-    if not basenames:
-        print(f"No images found under {src_img_dir}")
-        return
-
-    _write_imagesets(set_dir, class_name, basenames)
-
-
-def _resolve_split_dir(src_img_dir, split):
-    candidate = os.path.join(src_img_dir, split)
-    if os.path.isdir(candidate):
-        return candidate
-    return src_img_dir
-
-
-def _resolve_dataset_root(src_img_dir):
-    if os.path.isdir(os.path.join(src_img_dir, "train")) or os.path.isdir(os.path.join(src_img_dir, "test")):
-        return src_img_dir
-    if os.path.basename(src_img_dir) in {"train", "test"}:
-        parent = os.path.dirname(src_img_dir)
-        if os.path.isdir(os.path.join(parent, "train")) or os.path.isdir(os.path.join(parent, "test")):
-            return parent
-    return None
-
-
 def main(
     repo_root,
-    src_img_dir,
-    setup_data,
     class_name,
-    split,
-    sort_by_label,
     results_dir,
     dino_model,
     dino_fts_dim,
@@ -200,11 +109,24 @@ def main(
     if class_name:
         os.environ["CLIP_TEXT_VERSION"] = class_name
 
-    from move_data import moveImageSets, convert_to_jpg, sort_by_label as sort_by_label_mod
     from scripts import dist_clip_voc
     import test_msc_flip_voc
 
     paths = _resolve_paths(repo_root)
+
+    # Verify that prepare_colored_mnist.py has already been run.
+    train_txt = os.path.join(paths["set_dir"], "train.txt")
+    if not os.path.isdir(paths["dest_dir"]) or not os.listdir(paths["dest_dir"]):
+        raise FileNotFoundError(
+            f"JPEGImages directory is missing or empty: {paths['dest_dir']}\n"
+            "Run prepare_colored_mnist.py first."
+        )
+    if not os.path.isfile(train_txt):
+        raise FileNotFoundError(
+            f"ImageSets/Main/train.txt not found: {train_txt}\n"
+            "Run prepare_colored_mnist.py first."
+        )
+
     config = _write_runtime_config(
         paths["config"],
         paths["config_dir"],
@@ -215,28 +137,6 @@ def main(
         dino_decoder_layers=dino_decoder_layers,
     )
 
-    if src_img_dir is None:
-        src_img_dir = os.path.join(repo_root, "data", "saved", "ColorMNIST_images", "digit")
-
-    split_dir = _resolve_split_dir(src_img_dir, split)
-    if not os.path.isdir(split_dir):
-        raise FileNotFoundError(f"Image directory not found: {split_dir}")
-
-    if setup_data:
-        print("Setting up data")
-        os.makedirs(paths["set_dir"], exist_ok=True)
-        moveImageSets.main(paths["set_dir"])
-        _prepare_single_class_dataset(
-            split_dir,
-            class_name,
-            paths["set_dir"],
-            paths["dest_dir"],
-            copy_images=True,
-        )
-    else:
-        print("Skipping Setup")
-
-    convert_to_jpg.convert_to_jpg(paths["dest_dir"], True)
     final_path = dist_clip_voc.main(config)
 
     if results_dir:
@@ -246,33 +146,16 @@ def main(
 
     test_msc_flip_voc.outer_main(final_path, config)
 
-    if sort_by_label:
-        dataset_root = _resolve_dataset_root(src_img_dir)
-        if dataset_root is None:
-            print("Could not resolve dataset root for label sorting; skipping.")
-        else:
-            for split_name in ("train", "test"):
-                split_path = os.path.join(dataset_root, split_name)
-                if os.path.isdir(split_path):
-                    sort_by_label_mod.main(split_path)
-
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description="Generate pseudo masks for ColorMNIST. "
+        "Run prepare_colored_mnist.py first to populate JPEGImages/ and ImageSets/."
+    )
     parser.add_argument(
         "--repo-root",
         default=_default_repo_root(),
         help="Absolute path to the LearningToLook repo root.",
-    )
-    parser.add_argument(
-        "--src-img-dir",
-        default=None,
-        help="ColorMNIST digit folder or split folder (default: <repo-root>/data/saved/ColorMNIST_images/digit).",
-    )
-    parser.add_argument(
-        "--split",
-        default="train",
-        help="Which split to use when src-img-dir points at the digit root (default: train).",
     )
     parser.add_argument(
         "--class-name",
@@ -301,33 +184,11 @@ if __name__ == "__main__":
         default=None,
         help="Override decoder_layer in config.",
     )
-    parser.add_argument(
-        "--sort-by-label",
-        action="store_true",
-        help="Sort ColorMNIST train/test images into label subfolders after masks are generated.",
-    )
-    parser.add_argument(
-        "--setup-data",
-        dest="setup_data",
-        action="store_true",
-        help="Run data setup steps (ImageSets + image copies).",
-    )
-    parser.add_argument(
-        "--no-setup-data",
-        dest="setup_data",
-        action="store_false",
-        help="Skip data setup steps.",
-    )
-    parser.set_defaults(setup_data=False)
     args = parser.parse_args()
 
     main(
         args.repo_root,
-        args.src_img_dir,
-        args.setup_data,
         args.class_name,
-        args.split,
-        args.sort_by_label,
         args.results_dir,
         args.dino_model,
         args.dino_fts_dim,
