@@ -5,10 +5,8 @@ import argparse
 from datetime import datetime
 import random
 
-import cv2
 import numpy as np
 from PIL import Image
-import re
 
 import torch
 import torch.nn as nn
@@ -51,38 +49,6 @@ def seed_worker(worker_id):
 
 
 
-class ExpandWhite(object):
-    def __init__(self, thr: int = 10, radius: int = 3):
-        self.thr = thr
-        self.radius = radius
-    def __call__(self, mask: Image.Image) -> Image.Image:
-        arr = np.array(mask)
-        white = (arr > self.thr).astype(np.uint8)
-        k = cv2.getStructuringElement(cv2.MORPH_RECT, (2 * self.radius + 1, 2 * self.radius + 1))
-        dil = cv2.dilate(white, k, iterations=1)
-        return Image.fromarray((dil * 255).astype(np.uint8))
-
-
-class EdgeExtract(object):
-    def __init__(self, thr: int = 10, edge_width: int = 1):
-        self.thr = thr
-        self.edge_width = edge_width
-    def __call__(self, mask: Image.Image) -> Image.Image:
-        arr = np.array(mask)
-        white = (arr > self.thr).astype(np.uint8)
-        k = cv2.getStructuringElement(cv2.MORPH_RECT, (2 * self.edge_width + 1, 2 * self.edge_width + 1))
-        edge = cv2.morphologyEx(white, cv2.MORPH_GRADIENT, k)
-        return Image.fromarray((edge * 255).astype(np.uint8))
-
-
-class Brighten(object):
-    def __init__(self, factor: float):
-        self.factor = factor
-    def __call__(self, mask: torch.Tensor) -> torch.Tensor:
-        return torch.clamp(mask * self.factor, 0.0, 1.0)
-
-
-
 class LeNet(nn.Module):
     def __init__(self, num_classes):
         super().__init__()
@@ -100,23 +66,6 @@ class LeNet(nn.Module):
         return out
 
 
-def make_cam_model(num_classes):
-    base = LeNet(num_classes)
-    class CAMWrap(nn.Module):
-        def __init__(self, base_model):
-            super().__init__()
-            self.base = base_model
-            self.features = None
-            self.base.conv2.register_forward_hook(self._hook_fn)
-        def _hook_fn(self, module, inp, out):
-            self.features = out
-        def forward(self, x):
-            out = self.base(x)
-            return out, self.features
-    return CAMWrap(base)
-
-
-
 class ImageFolderWithPaths(datasets.ImageFolder):
     def __getitem__(self, index):
         image, label = super().__getitem__(index)
@@ -125,96 +74,25 @@ class ImageFolderWithPaths(datasets.ImageFolder):
 
 
 class GuidedImageFolder(Dataset):
-    def __init__(self, image_root: str, mask_root: str, image_transform=None, mask_transform=None):
+    def __init__(self, image_root: str, image_transform=None):
         self.images = datasets.ImageFolder(image_root, transform=image_transform)
-        self.mask_root = mask_root
-        self.mask_transform = mask_transform
-        self._mask_exts = (".png", ".jpg", ".jpeg")
-
-    def _resolve_mask_path(self, base):
-        candidates = [base]
-        if "_lbl" in base:
-            candidates.append(base.split("_lbl")[0])
-            candidates.append(re.sub(r"_lbl\d+$", "", base))
-            candidates.append(re.sub(r"_lbl\d+", "", base))
-
-        for stem in candidates:
-            for ext in self._mask_exts:
-                path = os.path.join(self.mask_root, stem + ext)
-                if os.path.exists(path):
-                    return path
-        tried = [os.path.join(self.mask_root, stem + ext) for stem in candidates for ext in self._mask_exts]
-        raise FileNotFoundError(f"Mask not found. Tried: {tried}")
     def __len__(self):
         return len(self.images)
     def __getitem__(self, idx):
         img, label = self.images[idx]
         path, _ = self.images.samples[idx]
-        base = os.path.splitext(os.path.basename(path))[0]
-        mask_path = self._resolve_mask_path(base)
-        mask = Image.open(mask_path).convert("L")
-        if self.mask_transform:
-            mask = self.mask_transform(mask)
-        return img, label, mask, path
+        return img, label, path
 
-
-
-def compute_loss(outputs, labels, cams, gt_masks, kl_lambda, only_ce):
-    ce_loss = nn.functional.cross_entropy(outputs, labels)
-    B, Hf, Wf = cams.shape
-    cam_flat = cams.view(B, -1)
-    gt_flat = gt_masks.view(B, -1)
-    log_p = nn.functional.log_softmax(cam_flat, dim=1)
-    gt_prob = gt_flat / (gt_flat.sum(dim=1, keepdim=True) + 1e-8)
-    kl_div = nn.KLDivLoss(reduction='batchmean')
-    attn_loss = kl_div(log_p, gt_prob)
-    if only_ce:
-        return ce_loss, attn_loss
-    else:
-        return ce_loss + kl_lambda * attn_loss, attn_loss
-
-
-def compute_attn_losses(cams, gt_masks):
-    B, Hf, Wf = cams.shape
-    cam_flat = cams.view(B, -1)
-    gt_flat = gt_masks.view(B, -1)
-
-    log_cam = nn.functional.log_softmax(cam_flat, dim=1)
-    cam_prob = nn.functional.softmax(cam_flat, dim=1)
-    gt_prob = gt_flat / (gt_flat.sum(dim=1, keepdim=True) + 1e-8)
-    log_gt = torch.log(gt_prob + 1e-8)
-
-    kl_div = nn.KLDivLoss(reduction='batchmean')
-    forward = kl_div(log_cam, gt_prob)  # KL(Mask || Cam)
-    reverse = kl_div(log_gt, cam_prob)  # KL(Cam || Mask)
-    return forward, reverse
-
-def train_model(model, weight_decay_on, dataloaders, dataset_sizes,
-                attention_epoch, kl_lambda_start, num_epochs,
-                lr2, kl_incr, beta=1.0, test_loader=None):
+def train_model(model, dataloaders, dataset_sizes, num_epochs, test_loader=None):
     best_wts = copy.deepcopy(model.state_dict())
-    best_optim = -100.0
+    best_acc = -1.0
     since = time.time()
 
     # single optimizer + scheduler
     opt = optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum, weight_decay=weight_decay)
     sch = optim.lr_scheduler.StepLR(opt, step_size=step_size, gamma=gamma)
 
-    kl_lambda_real = kl_lambda_start
-
     for epoch in range(num_epochs):
-        # restart at attention_epoch
-        if epoch == attention_epoch:
-            print(f"*** Attention epoch {epoch} reached: restarting optimizer & scheduler ***")
-            opt = optim.SGD(model.parameters(), lr=lr2, momentum=momentum, weight_decay=weight_decay)
-            sch = optim.lr_scheduler.StepLR(opt, step_size=step_size, gamma=gamma)
-            best_wts = copy.deepcopy(model.state_dict())
-            best_optim = -100.0
-
-        # increase KL after attention_epoch
-        if epoch > attention_epoch:
-            kl_lambda_real += kl_incr
-
         print(f"Epoch {epoch + 1}/{num_epochs}")
 
         for phase in ['train', 'val_in']:
@@ -223,55 +101,17 @@ def train_model(model, weight_decay_on, dataloaders, dataset_sizes,
 
             running_loss = 0.0
             running_corrects = 0
-            running_attn_loss = 0.0
-            running_attn_loss_rev = 0.0
-
             for batch in dataloaders[phase]:
-                if phase in ['train', 'val_in']:
-                    inputs, labels, gt_masks, paths = batch
-                    gt_masks = gt_masks.to(device)
-                    has_masks = True
-                else:
-                    raise RuntimeError("Unexpected phase.")
-
-                # attention used on both train and val_in
-                use_attention_this_batch = True
+                inputs, labels, paths = batch
 
                 inputs, labels = inputs.to(device), labels.to(device)
                 if is_train:
                     opt.zero_grad()
 
-                attn_loss_rev = torch.tensor(0.0, device=device)
                 with torch.set_grad_enabled(is_train):
-                    outputs, feats = model(inputs)
+                    outputs = model(inputs)
                     _, preds = torch.max(outputs, 1)
-
-                    if use_attention_this_batch and has_masks:
-                        weights = model.base.classifier.weight[labels]
-                        cams = torch.einsum('bc,bchw->bhw', weights, feats)
-                        cams = torch.relu(cams)
-
-                        flat = cams.view(cams.size(0), -1)
-                        mn, _ = flat.min(dim=1, keepdim=True)
-                        mx, _ = flat.max(dim=1, keepdim=True)
-                        sal_norm = ((flat - mn) / (mx - mn + 1e-8)).view_as(cams)
-
-                        gt_small = nn.functional.interpolate(
-                            gt_masks, size=sal_norm.shape[1:], mode='nearest'
-                        ).squeeze(1)
-
-                        if epoch < attention_epoch:
-                            loss_tuple = compute_loss(outputs, labels, sal_norm, gt_small, 333, True)
-                        else:
-                            loss_tuple = compute_loss(outputs, labels, sal_norm, gt_small, kl_lambda_real, False)
-
-                        loss = loss_tuple[0]
-                        attn_loss = loss_tuple[1]
-                        if phase == 'val_in':
-                            _, attn_loss_rev = compute_attn_losses(sal_norm, gt_small)
-                    else:
-                        loss = nn.functional.cross_entropy(outputs, labels)
-                        attn_loss = torch.tensor(0.0, device=outputs.device)
+                    loss = nn.functional.cross_entropy(outputs, labels)
 
                     if is_train:
                         loss.backward()
@@ -279,23 +119,17 @@ def train_model(model, weight_decay_on, dataloaders, dataset_sizes,
 
                 running_loss += loss.item() * inputs.size(0)
                 running_corrects += torch.sum(preds == labels.data)
-                running_attn_loss += attn_loss.item() * inputs.size(0)
-                running_attn_loss_rev += attn_loss_rev.item() * inputs.size(0)
 
             if is_train:
                 sch.step()
 
             epoch_loss = running_loss / dataset_sizes[phase]
             epoch_acc = running_corrects.double() / dataset_sizes[phase]
-            epoch_attn_loss = running_attn_loss / dataset_sizes[phase]
-            epoch_attn_loss_rev = running_attn_loss_rev / dataset_sizes[phase]
-            print(f"{phase} Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f} Attn_Loss: {epoch_attn_loss:.4f}")
+            print(f"{phase} Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}")
 
             if phase == 'val_in':
-                optim_num = epoch_acc * torch.exp(torch.tensor(-beta * epoch_attn_loss_rev)).item()
-                print(f"{phase} Optim Num: {optim_num:.4f} (attn_rev={epoch_attn_loss_rev:.4f}, beta={beta})")
-                if (epoch >= attention_epoch) and (optim_num > best_optim):
-                    best_optim = optim_num
+                if epoch_acc > best_acc:
+                    best_acc = epoch_acc
                     best_wts = copy.deepcopy(model.state_dict())
 
                 if test_loader is not None:
@@ -308,7 +142,7 @@ def train_model(model, weight_decay_on, dataloaders, dataset_sizes,
 
     # load best val_in weights before returning
     model.load_state_dict(best_wts)
-    return model, best_optim
+    return model, best_acc
 
 
 
@@ -321,7 +155,7 @@ def evaluate_test(model, test_loader):
     for images, labels, paths in test_loader:
         images = images.to(device)
         labels = labels.to(device)
-        outputs, _ = model(images)
+        outputs = model(images)
         loss = criterion(outputs, labels)
         total_loss += loss.item() * images.size(0)
         preds = outputs.argmax(dim=1)
@@ -350,15 +184,6 @@ def run_single(args, attn_epoch, kl_value):
             transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
         ])
     }
-    mask_transforms = {
-        'train': transforms.Compose([
-            ExpandWhite(thr=10, radius=3),
-            EdgeExtract(thr=10, edge_width=1),
-            transforms.Resize((32, 32)),
-            transforms.ToTensor(),
-            Brighten(8.0),
-        ])
-    }
 
     seed_everything(SEED)
     g = torch.Generator(); g.manual_seed(SEED)
@@ -366,9 +191,7 @@ def run_single(args, attn_epoch, kl_value):
     # Train + internal val split (from train/)
     full_train = GuidedImageFolder(
         image_root=os.path.join(args.data_path, 'train'),
-        mask_root=args.gt_path,
         image_transform=data_transforms['train'],
-        mask_transform=mask_transforms['train'],
     )
     n_total = len(full_train)
     n_val_in = max(1, int(0.16 * n_total))
@@ -394,15 +217,13 @@ def run_single(args, attn_epoch, kl_value):
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False,
                              num_workers=4, worker_init_fn=seed_worker, generator=g)
 
-    model = make_cam_model(len(full_train.images.classes)).to(device)
+    model = LeNet(len(full_train.images.classes)).to(device)
 
     os.makedirs(checkpoint_dir, exist_ok=True)
 
-    print(f"\n=== RUN: kl_lambda={kl_value}, attention_epoch={attn_epoch} ===", flush=True)
+    print("\n=== RUN: vanilla LeNet ===", flush=True)
     best_model, best_score = train_model(
-        model, True, dataloaders, dataset_sizes,
-        attn_epoch, kl_value, num_epochs,
-        lr2=learning_rate, kl_incr=(kl_value / 10), beta=0.2, test_loader=test_loader
+        model, dataloaders, dataset_sizes, num_epochs, test_loader=test_loader
     )
 
     # Evaluate once on TEST with the best val_in weights
@@ -411,11 +232,11 @@ def run_single(args, attn_epoch, kl_value):
 
     # Save best model (named with hyperparams)
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    save_name = f"lenet_final_kl{int(kl_value)}_attn{attn_epoch}_{ts}.pth"
+    save_name = f"lenet_final_{ts}.pth"
     save_path = os.path.join(checkpoint_dir, save_name)
     torch.save(best_model.state_dict(), save_path)
 
-    print(f"[RUN DONE] kl={kl_value} attn={attn_epoch} | best_valin_optim={best_score:.4f} "
+    print(f"[RUN DONE] best_valin_acc={best_score:.4f} "
           f"| test_acc={test_acc:.2f}% | saved: {save_path}", flush=True)
     return best_score, test_acc, save_path
 
@@ -424,35 +245,29 @@ def run_single(args, attn_epoch, kl_value):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('data_path', help='Root with train/ and test/ subdirs')
-    parser.add_argument('gt_path', help='Folder with ground-truth mask PNGs (for train only)')
-    parser.add_argument('--attention_epoch', type=int, default=11, help='Epoch at which to restart training')
-    parser.add_argument('--kl_lambda', type=float, default=160.0, help='Weight for attention KL loss')
+    parser.add_argument('gt_path', nargs='?', default=None,
+                        help='(ignored) Optional mask path for compatibility.')
     parser.add_argument('--sweep', action='store_true',
-                        help='Run the full hyperparameter sweep (kl 100..300 step 20; attn 5..25 step 2)')
+                        help='Run a repeat sweep for compatibility (same settings each run).')
     args = parser.parse_args()
 
     if not args.sweep:
-        run_single(args, args.attention_epoch, args.kl_lambda)
+        run_single(args, None, None)
         return
 
-    kl_values = list(range(100, 301, 20))
-    attn_values = list(range(5, 26, 2))
-
-    best_overall = (-1.0, None, None, None)  # (best_optim, kl, attn, test_acc)
-    for kl in kl_values:
-        for attn in attn_values:
-            try:
-                score, test_acc, _ = run_single(args, attn, kl)
-                if score > best_overall[0]:
-                    best_overall = (score, kl, attn, test_acc)
-            except Exception as e:
-                print(f"[SWEEP ERROR] kl={kl} attn={attn} -> {e}", flush=True)
+    best_overall = (-1.0, None)  # (best_acc, test_acc)
+    for _ in range(1):
+        try:
+            score, test_acc, _ = run_single(args, None, None)
+            if score > best_overall[0]:
+                best_overall = (score, test_acc)
+        except Exception as e:
+            print(f"[SWEEP ERROR] -> {e}", flush=True)
 
     print("\n=== SWEEP COMPLETE ===")
     if best_overall[1] is not None:
-        print(f"Best by internal val Optim Num: optim={best_overall[0]:.4f}, "
-              f"kl={best_overall[1]}, attn={best_overall[2]}, "
-              f"corresponding test_acc={best_overall[3]:.2f}%", flush=True)
+        print(f"Best by internal val Acc: acc={best_overall[0]:.4f}, "
+              f"corresponding test_acc={best_overall[1]:.2f}%", flush=True)
     else:
         print("No successful runs.", flush=True)
 
