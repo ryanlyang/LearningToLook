@@ -201,6 +201,11 @@ def main(cfg, model_path):
         num_classes=cfg.dataset.num_classes,
     )
 
+    print(
+        f"[test] Building model with dino_model={cfg.dino_init.dino_model}, "
+        f"dino_fts_fuse_dim={cfg.dino_init.dino_fts_fuse_dim}, "
+        f"decoder_layer={cfg.dino_init.decoder_layer}"
+    )
     model = WeCLIP_Plus(num_classes=cfg.dataset.num_classes,
                      clip_model=cfg.clip_init.clip_pretrain_path,
                      dino_model=cfg.dino_init.dino_model,
@@ -211,7 +216,7 @@ def main(cfg, model_path):
                      dataset_root_path=cfg.dataset.root_dir,
                      clip_flag=cfg.clip_init.clip_flag,
                      device='cuda')
-    
+
     trained_state_dict = torch.load(model_path, map_location="cpu")
 
     model.load_state_dict(state_dict=trained_state_dict, strict=False)
@@ -238,12 +243,14 @@ def main(cfg, model_path):
     return True
 
 
-def outer_main(model_path, config_path=None):
+def outer_main(model_path, config_path=None, cfg_override=None):
 
-    if config_path is None:
-        config_path = args.config  # default from parser
-
-    cfg = OmegaConf.load(config_path)
+    if cfg_override is not None:
+        cfg = cfg_override
+    elif config_path is None:
+        cfg = OmegaConf.load(args.config)
+    else:
+        cfg = OmegaConf.load(config_path)
 
 
     args.work_dir = os.path.join(args.work_dir, args.eval_set)

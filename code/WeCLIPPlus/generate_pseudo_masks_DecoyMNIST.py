@@ -137,6 +137,31 @@ def main(
         dino_decoder_layers=dino_decoder_layers,
     )
 
+    # Load and verify the runtime config in memory (guards against
+    # NFS caching or OmegaConf serialisation quirks on HPC clusters).
+    from omegaconf import OmegaConf
+
+    runtime_cfg = OmegaConf.load(config)
+    if dino_model:
+        actual = runtime_cfg.dino_init.dino_model
+        if actual != dino_model:
+            print(
+                f"WARNING: runtime config dino_model mismatch: "
+                f"expected '{dino_model}', got '{actual}'. Patching in-memory."
+            )
+        runtime_cfg.dino_init.dino_model = dino_model
+    if dino_fts_dim is not None:
+        runtime_cfg.dino_init.dino_fts_fuse_dim = int(dino_fts_dim)
+    if dino_decoder_layers is not None:
+        runtime_cfg.dino_init.decoder_layer = int(dino_decoder_layers)
+    OmegaConf.save(runtime_cfg, config)
+
+    print(
+        f"Runtime config: dino_model={runtime_cfg.dino_init.dino_model}, "
+        f"dino_fts_fuse_dim={runtime_cfg.dino_init.dino_fts_fuse_dim}, "
+        f"decoder_layer={runtime_cfg.dino_init.decoder_layer}"
+    )
+
     final_path = dist_clip_voc.main(config)
 
     if results_dir:
@@ -144,7 +169,9 @@ def main(
             results_dir = os.path.join(paths["weclip_root"], results_dir)
         test_msc_flip_voc.args.work_dir = results_dir
 
-    test_msc_flip_voc.outer_main(final_path, config)
+    # Pass the verified config object directly to test phase, bypassing
+    # any file-system caching issues on NFS-backed HPC clusters.
+    test_msc_flip_voc.outer_main(final_path, config, cfg_override=runtime_cfg)
 
 
 if __name__ == "__main__":
