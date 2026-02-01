@@ -8,6 +8,7 @@ import random
 import cv2
 import numpy as np
 from PIL import Image
+import re
 
 import torch
 import torch.nn as nn
@@ -128,13 +129,29 @@ class GuidedImageFolder(Dataset):
         self.images = datasets.ImageFolder(image_root, transform=image_transform)
         self.mask_root = mask_root
         self.mask_transform = mask_transform
+        self._mask_exts = (".png", ".jpg", ".jpeg")
+
+    def _resolve_mask_path(self, base):
+        candidates = [base]
+        if "_lbl" in base:
+            candidates.append(base.split("_lbl")[0])
+            candidates.append(re.sub(r"_lbl\d+$", "", base))
+            candidates.append(re.sub(r"_lbl\d+", "", base))
+
+        for stem in candidates:
+            for ext in self._mask_exts:
+                path = os.path.join(self.mask_root, stem + ext)
+                if os.path.exists(path):
+                    return path
+        tried = [os.path.join(self.mask_root, stem + ext) for stem in candidates for ext in self._mask_exts]
+        raise FileNotFoundError(f"Mask not found. Tried: {tried}")
     def __len__(self):
         return len(self.images)
     def __getitem__(self, idx):
         img, label = self.images[idx]
         path, _ = self.images.samples[idx]
         base = os.path.splitext(os.path.basename(path))[0]
-        mask_path = os.path.join(self.mask_root, base + ".png")
+        mask_path = self._resolve_mask_path(base)
         mask = Image.open(mask_path).convert("L")
         if self.mask_transform:
             mask = self.mask_transform(mask)
@@ -174,7 +191,7 @@ def compute_attn_losses(cams, gt_masks):
 
 def train_model(model, weight_decay_on, dataloaders, dataset_sizes,
                 attention_epoch, kl_lambda_start, num_epochs,
-                lr2, kl_incr, beta=0.05):
+                lr2, kl_incr, beta=1.0, test_loader=None):
     best_wts = copy.deepcopy(model.state_dict())
     best_optim = -100.0
     since = time.time()
@@ -224,6 +241,7 @@ def train_model(model, weight_decay_on, dataloaders, dataset_sizes,
                 if is_train:
                     opt.zero_grad()
 
+                attn_loss_rev = torch.tensor(0.0, device=device)
                 with torch.set_grad_enabled(is_train):
                     outputs, feats = model(inputs)
                     _, preds = torch.max(outputs, 1)
@@ -254,7 +272,6 @@ def train_model(model, weight_decay_on, dataloaders, dataset_sizes,
                     else:
                         loss = nn.functional.cross_entropy(outputs, labels)
                         attn_loss = torch.tensor(0.0, device=outputs.device)
-                        attn_loss_rev = torch.tensor(0.0, device=outputs.device)
 
                     if is_train:
                         loss.backward()
@@ -280,6 +297,10 @@ def train_model(model, weight_decay_on, dataloaders, dataset_sizes,
                 if (epoch >= attention_epoch) and (optim_num > best_optim):
                     best_optim = optim_num
                     best_wts = copy.deepcopy(model.state_dict())
+
+                if test_loader is not None:
+                    test_loss, test_acc = evaluate_test(model, test_loader)
+                    print(f"[TEST @ epoch {epoch + 1}] Loss: {test_loss:.4f}  Acc: {test_acc:.2f}%")
 
     print()
     time_elapsed = time.time() - since
@@ -381,7 +402,7 @@ def run_single(args, attn_epoch, kl_value):
     best_model, best_score = train_model(
         model, True, dataloaders, dataset_sizes,
         attn_epoch, kl_value, num_epochs,
-        lr2=learning_rate, kl_incr=(kl_value / 10), beta=0.05
+        lr2=learning_rate, kl_incr=(kl_value / 10), beta=0.05, test_loader=test_loader
     )
 
     # Evaluate once on TEST with the best val_in weights
