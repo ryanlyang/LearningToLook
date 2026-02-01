@@ -13,15 +13,11 @@
 set -Eeuo pipefail
 mkdir -p /home/ryreu/guided_cnn/logsMNIST
 
-REPO_ROOT="/home/ryreu/guided_cnn/MNIST_AGAIN/LearningToLook"
+REPO_ROOT="/home/ryreu/guided_cnn/MNIST_AGAIN/DecoyGen/LearningToLook"
 WECLIP_ROOT="${REPO_ROOT}/code/WeCLIPPlus"
 
 CONDA_ENV="learntolook"
-SRC_IMG_DIR="${REPO_ROOT}/data/saved/DecoyMNIST_images/digit"
-SPLIT="train"
 CLASS_NAME="digit"
-SETUP_DATA=1
-SORT_BY_LABEL=0
 RESULTS_DIR="results_decoy_mnist_openai_xcit"
 
 DINO_MODEL="xcit_medium_24_p16"
@@ -42,30 +38,16 @@ export PYTHONNOUSERSITE=1
 echo "[$(date)] Host: $(hostname)"
 which python
 
-echo "Using existing DecoyMNIST dataset at: ${SRC_IMG_DIR}"
-
 cd "${WECLIP_ROOT}"
 export PYTHONPATH="${WECLIP_ROOT}:${PYTHONPATH:-}"
 
 rm -f "${WECLIP_ROOT}/configs/voc_attn_reg_runtime.yaml"
 
 ARGS=(--repo-root "${REPO_ROOT}"
-      --src-img-dir "${SRC_IMG_DIR}"
-      --split "${SPLIT}"
       --class-name "${CLASS_NAME}"
       --results-dir "${RESULTS_DIR}"
       --dino-model "${DINO_MODEL}"
       --dino-fts-dim "${DINO_FTS_DIM}")
-
-if [[ "${SETUP_DATA}" -eq 1 ]]; then
-  ARGS+=(--setup-data)
-else
-  ARGS+=(--no-setup-data)
-fi
-
-if [[ "${SORT_BY_LABEL}" -eq 1 ]]; then
-  ARGS+=(--sort-by-label)
-fi
 
 echo "Running generate_pseudo_masks_DecoyMNIST.py ${ARGS[*]}"
 
