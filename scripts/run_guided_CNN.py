@@ -174,7 +174,7 @@ def compute_attn_losses(cams, gt_masks):
 
 def train_model(model, weight_decay_on, dataloaders, dataset_sizes,
                 attention_epoch, kl_lambda_start, num_epochs,
-                lr2, kl_incr, beta=1.0):
+                lr2, kl_incr, beta=0.05):
     best_wts = copy.deepcopy(model.state_dict())
     best_optim = -100.0
     since = time.time()
@@ -381,7 +381,7 @@ def run_single(args, attn_epoch, kl_value):
     best_model, best_score = train_model(
         model, True, dataloaders, dataset_sizes,
         attn_epoch, kl_value, num_epochs,
-        lr2=learning_rate, kl_incr=(kl_value / 10), beta=1.0
+        lr2=learning_rate, kl_incr=(kl_value / 10), beta=0.05
     )
 
     # Evaluate once on TEST with the best val_in weights
