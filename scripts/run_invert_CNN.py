@@ -402,7 +402,7 @@ def run_single(args, attn_epoch, kl_value):
     best_model, best_score = train_model(
         model, True, dataloaders, dataset_sizes,
         attn_epoch, kl_value, num_epochs,
-        lr2=learning_rate, kl_incr=(kl_value / 10), beta=0.05, test_loader=test_loader
+        lr2=learning_rate, kl_incr=(kl_value / 10), beta=0.2, test_loader=test_loader
     )
 
     # Evaluate once on TEST with the best val_in weights
