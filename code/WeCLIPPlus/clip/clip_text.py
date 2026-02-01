@@ -158,28 +158,28 @@ _all_class_names = ['digit']
 _all_new_class_names = ['digit']
 
 
-# BACKGROUND_CATEGORY = ['background', 'black', 'dark', 'nothing']
+BACKGROUND_CATEGORY = ['background', 'black', 'dark', 'nothing']
 
 
-BACKGROUND_CATEGORY = [
-    'background', 'black', 'dark', 'nothing',
+# BACKGROUND_CATEGORY = [
+#     'background', 'black', 'dark', 'nothing',
 
-    # generic “not the digit” / filler
-    'blank', 'empty', 'void', 'padding', 'margin', 'border', 'frame',
+#     # generic “not the digit” / filler
+#     'blank', 'empty', 'void', 'padding', 'margin', 'border', 'frame',
 
    
 
-    # patch / box language
-    'patch', 'box', 'square', 'block', 'tile', 'marker', 'tag', 'label',
+#     # patch / box language
+#     'patch', 'box', 'square', 'block', 'tile', 'marker', 'tag', 'label',
 
-    # location-y descriptors (common in Decoy MNIST)
-    'corner', 'corner_patch', 'corner_box', 'corner_marker',
-    'top_left', 'topleft', 'tl', 'upper_left', 'ul',
+#     # location-y descriptors (common in Decoy MNIST)
+#     'corner', 'corner_patch', 'corner_box', 'corner_marker',
+#     'top_left', 'topleft', 'tl', 'upper_left', 'ul',
 
-    # visual / encoding-ish
-    'stamp', 'badge',
+#     # visual / encoding-ish
+#     'stamp', 'badge',
 
-]
+# ]
 
 
 # Check for CLIP_TEXT_VERSION environment variable
