@@ -265,6 +265,17 @@ class VisionTransformerWrapper(nn.Module):
     def __init__(self, openclip_visual: nn.Module, patch_size: int = 16):
         super().__init__()
         self.openclip_visual = openclip_visual
+        self._visual_source = openclip_visual
+
+        def _resolve_timm_vit_source(visual: nn.Module):
+            if hasattr(visual, "patch_embed") and hasattr(visual, "blocks"):
+                return visual
+
+            for attr in ("trunk", "model", "backbone"):
+                nested = getattr(visual, attr, None)
+                if nested is not None and hasattr(nested, "patch_embed") and hasattr(nested, "blocks"):
+                    return nested
+            return None
 
         if hasattr(openclip_visual, "conv1") and hasattr(openclip_visual, "transformer"):
             # OpenCLIP CLIP-like visual transformer.
@@ -275,28 +286,56 @@ class VisionTransformerWrapper(nn.Module):
             self.ln_post = openclip_visual.ln_post if hasattr(openclip_visual, "ln_post") else nn.Identity()
             self.proj = openclip_visual.proj if hasattr(openclip_visual, "proj") else None
             source_blocks = openclip_visual.transformer.resblocks
-        elif hasattr(openclip_visual, "patch_embed") and hasattr(openclip_visual, "blocks"):
+        elif _resolve_timm_vit_source(openclip_visual) is not None:
             # Timm-style ViT backbone.
-            self.conv1 = openclip_visual.patch_embed.proj
+            vit_source = _resolve_timm_vit_source(openclip_visual)
+            self._visual_source = vit_source
+            self.conv1 = vit_source.patch_embed.proj
 
-            cls_token = getattr(openclip_visual, "cls_token", None)
-            if cls_token is None:
-                raise RuntimeError("Unsupported visual backbone: missing cls_token for timm-style ViT.")
-            self.class_embedding = nn.Parameter(cls_token.squeeze(0).squeeze(0))
+            cls_token = getattr(vit_source, "cls_token", None)
+            pos_embed = getattr(vit_source, "pos_embed", None)
+            width = int(self.conv1.weight.shape[0])
 
-            pos_embed = getattr(openclip_visual, "pos_embed", None)
+            if cls_token is not None:
+                self.class_embedding = nn.Parameter(cls_token.squeeze(0).squeeze(0))
+            else:
+                # Some timm wrappers omit cls_token but WeCLIP+ expects one.
+                self.class_embedding = nn.Parameter(torch.zeros(width))
+
             if pos_embed is None:
-                raise RuntimeError("Unsupported visual backbone: missing pos_embed for timm-style ViT.")
-            self.positional_embedding = nn.Parameter(pos_embed.squeeze(0))
+                # Relative-position models may not expose pos_embed; synthesize a
+                # learnable embedding so the CLIP-style forward path still works.
+                image_size = getattr(openclip_visual, "image_size", None)
+                if image_size is None:
+                    image_size = getattr(vit_source, "img_size", 224)
+                if isinstance(image_size, (tuple, list)):
+                    image_size = image_size[0]
+                p = self.conv1.kernel_size[0] if isinstance(self.conv1.kernel_size, tuple) else self.conv1.kernel_size
+                grid = max(int(image_size) // int(p), 1)
+                self.positional_embedding = nn.Parameter(torch.zeros(1 + grid * grid, width))
+            else:
+                pos_embed = pos_embed.squeeze(0)
+                num_prefix_tokens = int(getattr(vit_source, "num_prefix_tokens", 1))
+                if num_prefix_tokens > 1 and pos_embed.shape[0] > num_prefix_tokens:
+                    # Drop extra prefix/register tokens to match WeCLIP+'s single-CLS path.
+                    pos_embed = torch.cat([pos_embed[:1], pos_embed[num_prefix_tokens:]], dim=0)
+                elif num_prefix_tokens == 0:
+                    pad = torch.zeros(1, pos_embed.shape[1], dtype=pos_embed.dtype, device=pos_embed.device)
+                    pos_embed = torch.cat([pad, pos_embed], dim=0)
+                self.positional_embedding = nn.Parameter(pos_embed)
 
-            self.ln_pre = getattr(openclip_visual, "norm_pre", nn.Identity())
-            self.ln_post = getattr(openclip_visual, "norm", nn.Identity())
-            self.proj = getattr(openclip_visual, "proj", None)
-            source_blocks = openclip_visual.blocks
+            self.ln_pre = getattr(vit_source, "norm_pre", nn.Identity())
+            self.ln_post = getattr(vit_source, "norm", nn.Identity())
+            self.proj = getattr(vit_source, "proj", None)
+            source_blocks = vit_source.blocks
         else:
+            attrs = sorted(
+                [name for name in dir(openclip_visual) if not name.startswith("_")]
+            )
             raise RuntimeError(
                 "Unsupported open_clip visual backbone. Expected CLIP-style (conv1/transformer) "
-                "or timm-style (patch_embed/blocks) ViT."
+                "or timm-style (patch_embed/blocks) ViT. "
+                f"visual_type={type(openclip_visual).__name__}, attrs={attrs[:40]}"
             )
 
         width = self.positional_embedding.shape[-1]
@@ -319,7 +358,12 @@ class VisionTransformerWrapper(nn.Module):
         else:
             self.patch_size = int(patch_size)
 
-        self.input_resolution = openclip_visual.image_size if hasattr(openclip_visual, "image_size") else 224
+        image_size = getattr(openclip_visual, "image_size", None)
+        if image_size is None:
+            image_size = getattr(self._visual_source, "img_size", 224)
+        if isinstance(image_size, (tuple, list)):
+            image_size = image_size[0]
+        self.input_resolution = int(image_size)
 
     def _copy_transformer_weights(self, source_blocks) -> None:
         for src_block, dst_block in zip(source_blocks, self.transformer.resblocks):
