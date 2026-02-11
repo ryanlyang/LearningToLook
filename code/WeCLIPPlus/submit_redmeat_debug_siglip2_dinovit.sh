@@ -6,8 +6,8 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
-#SBATCH --output=/home/ryreu/guided_cnn/logsMeat/redmeat_openai_dinovit_%j.out
-#SBATCH --error=/home/ryreu/guided_cnn/logsMeat/redmeat_openai_dinovit_%j.err
+#SBATCH --output=/home/ryreu/guided_cnn/logsMeat/redmeat_siglip2_dinovit_%j.out
+#SBATCH --error=/home/ryreu/guided_cnn/logsMeat/redmeat_siglip2_dinovit_%j.err
 #SBATCH --signal=TERM@120
 
 set -Eeuo pipefail
@@ -19,17 +19,23 @@ SPLIT_IMAGES_DIR="/home/ryreu/guided_cnn/Food101/data/food-101-redmeat/split_ima
 
 CONDA_ENV="learntolook"
 CLASS_NAME="meat"
-RESULTS_DIR="results_redmeat_openai_dinovit"
+RESULTS_DIR="results_redmeat_siglip2_dinovit"
 
-# DINO ViT (not XCiT)
+# ViT DINO
 DINO_MODEL="dinov2_vitb14_reg"
 DINO_FTS_DIM=768
 DINO_DECODER_LAYERS=3
 
+# Optional SigLIP2 overrides (recommended to set explicitly if auto-discovery fails):
+# CLIP_MODEL_NAME="<open_clip_siglip2_model_name>"
+# CLIP_PRETRAINED="<open_clip_pretrained_tag>"
+CLIP_MODEL_NAME="${CLIP_MODEL_NAME:-}"
+CLIP_PRETRAINED="${CLIP_PRETRAINED:-}"
+
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate "${CONDA_ENV}"
 
-export CLIP_BACKEND="openai"
+export CLIP_BACKEND="siglip2"
 export TF_CPP_MIN_LOG_LEVEL=3
 export TF_ENABLE_ONEDNN_OPTS=0
 export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-1}"
@@ -43,17 +49,31 @@ which python
 cd "${WECLIP_ROOT}"
 export PYTHONPATH="${WECLIP_ROOT}:${PYTHONPATH:-}"
 
+python -c "import open_clip" 2>/dev/null || {
+  echo "Installing open_clip_torch..."
+  pip install -q open_clip_torch
+}
+
 rm -f "${WECLIP_ROOT}/configs/voc_attn_reg_runtime.yaml"
 
 ARGS=(--repo-root "${REPO_ROOT}"
       --split-images-dir "${SPLIT_IMAGES_DIR}"
       --class-name "${CLASS_NAME}"
       --results-dir "${RESULTS_DIR}"
-      --clip-backend "openai"
+      --clip-backend "siglip2"
       --dino-model "${DINO_MODEL}"
       --dino-fts-dim "${DINO_FTS_DIM}"
       --dino-decoder-layers "${DINO_DECODER_LAYERS}"
       --no-setup-data)
+
+if [[ -n "${CLIP_MODEL_NAME}" ]]; then
+  export CLIP_MODEL_NAME
+  ARGS+=(--clip-model "${CLIP_MODEL_NAME}")
+fi
+if [[ -n "${CLIP_PRETRAINED}" ]]; then
+  export CLIP_PRETRAINED
+  ARGS+=(--clip-pretrained "${CLIP_PRETRAINED}")
+fi
 
 echo "Running generate_pseudo_masks_redMeat.py ${ARGS[*]}"
 

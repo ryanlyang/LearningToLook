@@ -6,8 +6,8 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
-#SBATCH --output=/home/ryreu/guided_cnn/logsMeat/redmeat_openai_dinovit_%j.out
-#SBATCH --error=/home/ryreu/guided_cnn/logsMeat/redmeat_openai_dinovit_%j.err
+#SBATCH --output=/home/ryreu/guided_cnn/logsMeat/redmeat_openai_xcit_%j.out
+#SBATCH --error=/home/ryreu/guided_cnn/logsMeat/redmeat_openai_xcit_%j.err
 #SBATCH --signal=TERM@120
 
 set -Eeuo pipefail
@@ -19,12 +19,13 @@ SPLIT_IMAGES_DIR="/home/ryreu/guided_cnn/Food101/data/food-101-redmeat/split_ima
 
 CONDA_ENV="learntolook"
 CLASS_NAME="meat"
-RESULTS_DIR="results_redmeat_openai_dinovit"
+RESULTS_DIR="results_redmeat_openai_xcit"
 
-# DINO ViT (not XCiT)
-DINO_MODEL="dinov2_vitb14_reg"
-DINO_FTS_DIM=768
-DINO_DECODER_LAYERS=3
+# XCiT DINO (OpenAI CLIP stays the same)
+DINO_MODEL="xcit_medium_24_p16"
+DINO_FTS_DIM=512
+DINO_DECODER_LAYERS=5
+XCIT_WEIGHTS="${WECLIP_ROOT}/pretrained/dino_xcit_medium_24_p16_pretrain.pth"
 
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate "${CONDA_ENV}"
@@ -42,6 +43,12 @@ which python
 
 cd "${WECLIP_ROOT}"
 export PYTHONPATH="${WECLIP_ROOT}:${PYTHONPATH:-}"
+
+if [[ ! -f "${XCIT_WEIGHTS}" ]]; then
+  echo "Missing XCiT pretrained weights: ${XCIT_WEIGHTS}"
+  echo "Place dino_xcit_medium_24_p16_pretrain.pth under ${WECLIP_ROOT}/pretrained/"
+  exit 1
+fi
 
 rm -f "${WECLIP_ROOT}/configs/voc_attn_reg_runtime.yaml"
 
