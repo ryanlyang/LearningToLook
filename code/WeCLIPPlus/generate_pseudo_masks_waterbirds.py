@@ -117,20 +117,27 @@ def _prepare_single_class_dataset(src_img_dir, class_name, set_dir, dest_dir, co
     _write_imagesets(set_dir, class_name, basenames)
 
 
-def main(repo_root, src_img_dir, setup_data, class_name):
+def main(repo_root, src_img_dir, setup_data, class_name, clip_backend, clip_model, clip_pretrained):
     if class_name:
         os.environ["CLIP_TEXT_VERSION"] = class_name
+    if clip_backend:
+        os.environ["CLIP_BACKEND"] = clip_backend
+    if clip_model:
+        os.environ["CLIP_MODEL_NAME"] = clip_model
+    if clip_pretrained:
+        os.environ["CLIP_PRETRAINED"] = clip_pretrained
 
     from move_data import moveImageSets, convert_to_jpg
     from scripts import dist_clip_voc
     import test_msc_flip_voc
 
     paths = _resolve_paths(repo_root)
+    clip_pretrain_path = clip_model or paths["clip_pretrain_path"]
     config = _write_runtime_config(
         paths["config"],
         paths["config_dir"],
         paths["voc_root"],
-        paths["clip_pretrain_path"],
+        clip_pretrain_path,
     )
 
     if setup_data:
@@ -181,7 +188,37 @@ if __name__ == "__main__":
         action="store_false",
         help="Skip data setup steps.",
     )
+    parser.add_argument(
+        "--clip-backend",
+        default=None,
+        choices=["openai", "openclip", "siglip2"],
+        help="Override CLIP backend for this run.",
+    )
+    parser.add_argument(
+        "--clip-model",
+        default=None,
+        help=(
+            "Override CLIP model identifier. For openai, this can be a checkpoint path. "
+            "For openclip/siglip2, this can be an open_clip model name."
+        ),
+    )
+    parser.add_argument(
+        "--clip-pretrained",
+        default=None,
+        help=(
+            "Override open_clip pretrained tag (e.g., openai, laion2b_s34b_b88k, webli). "
+            "Only used by openclip/siglip2 backends."
+        ),
+    )
     parser.set_defaults(setup_data=False)
     args = parser.parse_args()
 
-    main(args.repo_root, args.src_img_dir, args.setup_data, args.class_name)
+    main(
+        args.repo_root,
+        args.src_img_dir,
+        args.setup_data,
+        args.class_name,
+        args.clip_backend,
+        args.clip_model,
+        args.clip_pretrained,
+    )

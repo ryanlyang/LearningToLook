@@ -19,11 +19,14 @@ WECLIP_ROOT="${REPO_ROOT}/code/WeCLIPPlus"
 CONDA_ENV="learntolook"
 CLASS_NAME="digit"
 RESULTS_DIR="results_decoy_mnist_openclip"
+CLIP_BACKEND="${CLIP_BACKEND:-openclip}"   # set to siglip2 for SigLIP2
+CLIP_MODEL_NAME="${CLIP_MODEL_NAME:-}"     # optional open_clip model name
+CLIP_PRETRAINED="${CLIP_PRETRAINED:-}"     # optional open_clip pretrained tag
 
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate "${CONDA_ENV}"
 
-export CLIP_BACKEND="openclip"
+export CLIP_BACKEND
 export TF_CPP_MIN_LOG_LEVEL=3
 export TF_ENABLE_ONEDNN_OPTS=0
 export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-1}"
@@ -44,7 +47,17 @@ python -c "import open_clip" 2>/dev/null || {
 
 ARGS=(--repo-root "${REPO_ROOT}"
       --class-name "${CLASS_NAME}"
-      --results-dir "${RESULTS_DIR}")
+      --results-dir "${RESULTS_DIR}"
+      --clip-backend "${CLIP_BACKEND}")
+
+if [[ -n "${CLIP_MODEL_NAME}" ]]; then
+  export CLIP_MODEL_NAME
+  ARGS+=(--clip-model "${CLIP_MODEL_NAME}")
+fi
+if [[ -n "${CLIP_PRETRAINED}" ]]; then
+  export CLIP_PRETRAINED
+  ARGS+=(--clip-pretrained "${CLIP_PRETRAINED}")
+fi
 
 echo "Running generate_pseudo_masks_DecoyMNIST.py ${ARGS[*]}"
 

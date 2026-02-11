@@ -27,7 +27,7 @@ We recommend using a `conda` environment.
     Download the CLIP ViT-B/16 checkpoint and place it at code/WeCLIPPlus/pretrained/ViT-B-16.pt:
     https://openaipublic.azureedge.net/clip/models/5806e77cd80f8b59890b7e101eabd078d9fb84e6937f9e85e4ecb61988df416f/ViT-B-16.pt
 
-4. **Choose CLIP Backend (OpenCLIP vs OpenAI CLIP):**
+4. **Choose CLIP Backend (OpenAI CLIP, OpenCLIP, or SigLIP2):**
     By default, WeCLIP+ uses the OpenCLIP adapter. To switch to the original OpenAI CLIP implementation:
     ```sh
     export CLIP_BACKEND=openai
@@ -36,6 +36,15 @@ We recommend using a `conda` environment.
     ```sh
     export CLIP_BACKEND=openclip
     ```
+    To use SigLIP2 (through open_clip):
+    ```sh
+    export CLIP_BACKEND=siglip2
+    # Optional explicit model/pretrained pair:
+    # export CLIP_MODEL_NAME=<open_clip_siglip2_model_name>
+    # export CLIP_PRETRAINED=<open_clip_pretrained_tag>
+    ```
+    If SigLIP2 auto-discovery fails, update `open_clip_torch` and set
+    `CLIP_MODEL_NAME` / `CLIP_PRETRAINED` explicitly.
 
 
 ### File Structure
@@ -83,6 +92,14 @@ The project runs in three main steps:
     python generate_psuedo_masks.py --setup-data
     ```
     This will train WeCLIP+ and save the resulting pseudo-masks in a `results/` directory inside `code/WeCLIPPlus/`.
+
+    For ColorMNIST/DecoyMNIST helper scripts you can also pass backend/model at runtime:
+    ```sh
+    python code/WeCLIPPlus/generate_pseudo_masks_ColoredMNIST.py \
+      --clip-backend siglip2 \
+      --clip-model <open_clip_siglip2_model_name> \
+      --clip-pretrained <open_clip_pretrained_tag>
+    ```
 
 3.  **Train the Guided CNN**
     Finally, change directory out:

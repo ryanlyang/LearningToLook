@@ -102,17 +102,27 @@ def main(
     repo_root,
     class_name,
     results_dir,
+    clip_backend,
+    clip_model,
+    clip_pretrained,
     dino_model,
     dino_fts_dim,
     dino_decoder_layers,
 ):
     if class_name:
         os.environ["CLIP_TEXT_VERSION"] = class_name
+    if clip_backend:
+        os.environ["CLIP_BACKEND"] = clip_backend
+    if clip_model:
+        os.environ["CLIP_MODEL_NAME"] = clip_model
+    if clip_pretrained:
+        os.environ["CLIP_PRETRAINED"] = clip_pretrained
 
     from scripts import dist_clip_voc
     import test_msc_flip_voc
 
     paths = _resolve_paths(repo_root)
+    clip_pretrain_path = clip_model or paths["clip_pretrain_path"]
 
     # Verify that prepare_colored_mnist.py has already been run.
     train_txt = os.path.join(paths["set_dir"], "train.txt")
@@ -131,7 +141,7 @@ def main(
         paths["config"],
         paths["config_dir"],
         paths["voc_root"],
-        paths["clip_pretrain_path"],
+        clip_pretrain_path,
         dino_model=dino_model,
         dino_fts_dim=dino_fts_dim,
         dino_decoder_layers=dino_decoder_layers,
@@ -197,6 +207,28 @@ if __name__ == "__main__":
         help="Output directory for prediction_cmap (default: results).",
     )
     parser.add_argument(
+        "--clip-backend",
+        default=None,
+        choices=["openai", "openclip", "siglip2"],
+        help="Override CLIP backend for this run.",
+    )
+    parser.add_argument(
+        "--clip-model",
+        default=None,
+        help=(
+            "Override CLIP model identifier. For openai, this can be a checkpoint path. "
+            "For openclip/siglip2, this can be an open_clip model name."
+        ),
+    )
+    parser.add_argument(
+        "--clip-pretrained",
+        default=None,
+        help=(
+            "Override open_clip pretrained tag (e.g., openai, laion2b_s34b_b88k, webli). "
+            "Only used by openclip/siglip2 backends."
+        ),
+    )
+    parser.add_argument(
         "--dino-model",
         default=None,
         help="Override DINO model name in config (e.g., xcit_medium_24_p16).",
@@ -219,6 +251,9 @@ if __name__ == "__main__":
         args.repo_root,
         args.class_name,
         args.results_dir,
+        args.clip_backend,
+        args.clip_model,
+        args.clip_pretrained,
         args.dino_model,
         args.dino_fts_dim,
         args.dino_decoder_layers,

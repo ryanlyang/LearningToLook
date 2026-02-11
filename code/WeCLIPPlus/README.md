@@ -68,6 +68,17 @@ Download the pre-trained CLIP-VIT/16 weights from the official [link](https://op
 
 Then, move this model to `pretrained/`.
 
+If you want to use SigLIP2 instead of CLIP, set:
+```bash
+export CLIP_BACKEND=siglip2
+```
+and optionally provide an explicit open_clip model/pretrained pair:
+```bash
+export CLIP_MODEL_NAME=<open_clip_siglip2_model_name>
+export CLIP_PRETRAINED=<open_clip_pretrained_tag>
+```
+If SigLIP2 auto-discovery fails, update `open_clip_torch` and set both vars explicitly.
+
 
 ### Modify the config
 Three parameters requires to be modified based on your path:
