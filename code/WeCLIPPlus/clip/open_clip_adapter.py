@@ -19,6 +19,7 @@ import clip.myAtt as myAtt
 
 
 _TOKENIZER_FN = open_clip.tokenize
+_TOKENIZER_CONTEXT_LENGTH = 77
 
 
 def upsample_pos_emb(emb: torch.Tensor, new_size: Tuple[int, int]) -> nn.Parameter:
@@ -558,6 +559,8 @@ def load(
         pretrained=pretrained,
         device=device,
     )
+    global _TOKENIZER_CONTEXT_LENGTH
+    _TOKENIZER_CONTEXT_LENGTH = int(getattr(model, "context_length", 77))
     _set_tokenizer(model_name)
 
     adapted_model = CLIPAdapter(model, patch_size=patch_size)
@@ -568,14 +571,30 @@ def load(
 
 def tokenize(texts: Union[str, List[str]], context_length: int = 77, truncate: bool = False):
     """Tokenize text for the most recently loaded open_clip model."""
+    resolved_context_length = int(context_length)
+    if resolved_context_length == 77 and _TOKENIZER_CONTEXT_LENGTH != 77:
+        # WeCLIP+ callers usually do clip.tokenize(texts) without context_length.
+        # Respect the loaded model's required context length (e.g., 64 for SigLIP2).
+        resolved_context_length = _TOKENIZER_CONTEXT_LENGTH
+
     try:
-        return _TOKENIZER_FN(texts)
+        return _TOKENIZER_FN(
+            texts,
+            context_length=resolved_context_length,
+            truncate=truncate,
+        )
     except TypeError:
         pass
     except Exception:
-        return open_clip.tokenize(texts, context_length=context_length, truncate=truncate)
+        pass
 
     try:
-        return _TOKENIZER_FN(texts, context_length=context_length, truncate=truncate)
+        return _TOKENIZER_FN(texts)
     except Exception:
-        return open_clip.tokenize(texts, context_length=context_length, truncate=truncate)
+        pass
+
+    return open_clip.tokenize(
+        texts,
+        context_length=resolved_context_length,
+        truncate=truncate,
+    )
