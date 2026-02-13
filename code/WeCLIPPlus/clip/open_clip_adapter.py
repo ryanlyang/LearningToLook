@@ -193,6 +193,38 @@ def _set_tokenizer(model_name: str) -> None:
         _TOKENIZER_FN = open_clip.tokenize
 
 
+def _infer_tokenizer_context_length(model: nn.Module, default: int = 77) -> int:
+    for attr_path in (
+        ("context_length",),
+        ("text", "context_length"),
+    ):
+        obj = model
+        ok = True
+        for attr in attr_path:
+            if not hasattr(obj, attr):
+                ok = False
+                break
+            obj = getattr(obj, attr)
+        if ok:
+            try:
+                value = int(obj)
+                if value > 0:
+                    return value
+            except Exception:
+                pass
+
+    text_mod = getattr(model, "text", None)
+    pos = getattr(text_mod, "positional_embedding", None)
+    if hasattr(pos, "shape") and len(pos.shape) >= 1:
+        try:
+            value = int(pos.shape[0])
+            if value > 0:
+                return value
+        except Exception:
+            pass
+    return int(default)
+
+
 class LayerNorm(nn.LayerNorm):
     """LayerNorm variant that safely handles mixed precision."""
 
@@ -560,7 +592,7 @@ def load(
         device=device,
     )
     global _TOKENIZER_CONTEXT_LENGTH
-    _TOKENIZER_CONTEXT_LENGTH = int(getattr(model, "context_length", 77))
+    _TOKENIZER_CONTEXT_LENGTH = _infer_tokenizer_context_length(model, default=77)
     _set_tokenizer(model_name)
 
     adapted_model = CLIPAdapter(model, patch_size=patch_size)
@@ -587,6 +619,32 @@ def tokenize(texts: Union[str, List[str]], context_length: int = 77, truncate: b
         pass
     except Exception:
         pass
+
+    try:
+        return _TOKENIZER_FN(
+            texts,
+            context_length=resolved_context_length,
+        )
+    except TypeError:
+        pass
+    except Exception:
+        pass
+
+    try:
+        return _TOKENIZER_FN(
+            texts,
+            truncate=truncate,
+        )
+    except TypeError:
+        pass
+    except Exception:
+        pass
+
+    if resolved_context_length != 77:
+        try:
+            return _TOKENIZER_FN(texts)
+        except Exception:
+            pass
 
     try:
         return _TOKENIZER_FN(texts)
