@@ -130,21 +130,47 @@ def _prepare_single_class_dataset(src_img_dir, class_name, set_dir, dest_dir, co
     _write_imagesets(set_dir, class_name, basenames)
 
 
-def main(repo_root, src_img_dir, setup_data, class_name, clip_pretrained):
+def main(
+    repo_root,
+    src_img_dir,
+    setup_data,
+    class_name,
+    clip_backend,
+    clip_model,
+    clip_pretrained,
+    results_dir,
+):
     if class_name:
         os.environ["CLIP_TEXT_VERSION"] = class_name
+    if clip_backend:
+        os.environ["CLIP_BACKEND"] = clip_backend
+    if clip_model:
+        os.environ["CLIP_MODEL_NAME"] = clip_model
+    else:
+        os.environ.pop("CLIP_MODEL_NAME", None)
+
+    clip_pretrained_effective = clip_pretrained
+    if clip_backend == "siglip2" and clip_pretrained in (None, "", "metaclip_fullcc"):
+        # Clear config/env override so adapter can auto-pick SigLIP2 defaults.
+        clip_pretrained_effective = ""
+
+    if clip_pretrained_effective:
+        os.environ["CLIP_PRETRAINED"] = clip_pretrained_effective
+    else:
+        os.environ.pop("CLIP_PRETRAINED", None)
 
     from move_data import moveImageSets, convert_to_jpg
     from scripts import dist_clip_voc
     import test_msc_flip_voc
 
     paths = _resolve_paths(repo_root)
+
     config = _write_runtime_config(
         paths["config"],
         paths["config_dir"],
         paths["voc_root"],
-        paths["clip_pretrain_path"],
-        clip_pretrained,
+        clip_model or paths["clip_pretrain_path"],
+        clip_pretrained_effective,
     )
 
     if setup_data:
@@ -161,8 +187,18 @@ def main(repo_root, src_img_dir, setup_data, class_name, clip_pretrained):
     else:
         print("Skipping Setup")
 
+    print(
+        f"Runtime CLIP: backend={clip_backend}, "
+        f"model={clip_model or paths['clip_pretrain_path']}, "
+        f"pretrained={clip_pretrained_effective}"
+    )
+
     convert_to_jpg.convert_to_jpg(paths["dest_dir"], True)
     final_path = dist_clip_voc.main(config)
+    if results_dir:
+        if not os.path.isabs(results_dir):
+            results_dir = os.path.join(paths["weclip_root"], results_dir)
+        test_msc_flip_voc.args.work_dir = results_dir
     test_msc_flip_voc.outer_main(final_path, config)
 
 
@@ -198,9 +234,37 @@ if __name__ == "__main__":
     parser.add_argument(
         "--clip-pretrained",
         default="metaclip_fullcc",
-        help="OpenCLIP pretrained tag or local checkpoint (e.g., openai, laion2b_s34b_b88k).",
+        help=(
+            "OpenCLIP/SigLIP2 pretrained tag (e.g., metaclip_fullcc, openai, webli). "
+            "If backend is siglip2 and this is left as metaclip_fullcc, it auto-switches to SigLIP2 defaults."
+        ),
+    )
+    parser.add_argument(
+        "--clip-backend",
+        default="openclip",
+        choices=["openclip", "siglip2"],
+        help="CLIP backend family. Use siglip2 to load SigLIP2 models via open_clip.",
+    )
+    parser.add_argument(
+        "--clip-model",
+        default=None,
+        help="Optional model override (e.g., ViT-B-16-SigLIP2).",
+    )
+    parser.add_argument(
+        "--results-dir",
+        default="results",
+        help="Output directory for predictions (prediction_cmap will be under <results-dir>/val).",
     )
     parser.set_defaults(setup_data=False)
     args = parser.parse_args()
 
-    main(args.repo_root, args.src_img_dir, args.setup_data, args.class_name, args.clip_pretrained)
+    main(
+        args.repo_root,
+        args.src_img_dir,
+        args.setup_data,
+        args.class_name,
+        args.clip_backend,
+        args.clip_model,
+        args.clip_pretrained,
+        args.results_dir,
+    )
