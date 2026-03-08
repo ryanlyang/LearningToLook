@@ -20,10 +20,11 @@ SRC_IMG_DIR="/home/ryreu/guided_cnn/waterbirds/waterbird_1.0_forest2water2"
 CONDA_ENV="learntolook"
 CLASS_NAME="bird"
 RESULTS_DIR="results_waterbirds100_openclip_laion_dinovit"
+VOC_WORKSPACE_NAME="${VOC_WORKSPACE_NAME:-VOC2012_waterbirds100}"
 
 # OpenCLIP LAION settings (override via env if needed).
 CLIP_BACKEND="${CLIP_BACKEND:-openclip}"
-CLIP_MODEL_NAME="${CLIP_MODEL_NAME:-}"                 # Optional, e.g. ViT-B-16
+CLIP_MODEL_NAME="${CLIP_MODEL_NAME:-ViT-B-16}"
 CLIP_PRETRAINED="${CLIP_PRETRAINED:-laion2b_s34b_b88k}"
 
 # ViT DINO settings.
@@ -53,12 +54,11 @@ python -c "import open_clip" 2>/dev/null || {
   pip install -q open_clip_torch
 }
 
-rm -f "${WECLIP_ROOT}/configs/voc_attn_reg_runtime.yaml"
-
 ARGS=(--setup-data
       --repo-root "${REPO_ROOT}"
       --src-img-dir "${SRC_IMG_DIR}"
       --class-name "${CLASS_NAME}"
+      --voc-workspace-name "${VOC_WORKSPACE_NAME}"
       --results-dir "${RESULTS_DIR}"
       --clip-backend "${CLIP_BACKEND}"
       --clip-pretrained "${CLIP_PRETRAINED}"

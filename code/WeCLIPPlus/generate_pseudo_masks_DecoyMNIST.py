@@ -8,11 +8,12 @@ def _default_repo_root():
     return os.path.abspath(os.path.join(script_dir, "..", ".."))
 
 
-def _resolve_paths(repo_root):
+def _resolve_paths(repo_root, voc_workspace_name):
     repo_root = os.path.abspath(repo_root)
     weclip_root = os.path.join(repo_root, "code", "WeCLIPPlus")
-    # Keep the legacy VOC-style layout for compatibility with WeCLIP internals.
-    mask_data_root = os.path.join(weclip_root, "VOCdevkit", "VOC2012")
+    workspace = voc_workspace_name or "VOC2012"
+    # Keep a VOC-style layout for compatibility with WeCLIP internals.
+    mask_data_root = os.path.join(weclip_root, "VOCdevkit", workspace)
     return {
         "weclip_root": weclip_root,
         "config": os.path.join(weclip_root, "configs", "voc_attn_reg.yaml"),
@@ -102,6 +103,7 @@ def _write_runtime_config(
 def main(
     repo_root,
     class_name,
+    voc_workspace_name,
     results_dir,
     clip_backend,
     clip_model,
@@ -123,25 +125,26 @@ def main(
     from scripts import dist_clip_voc
     import test_msc_flip_voc
 
-    paths = _resolve_paths(repo_root)
+    paths = _resolve_paths(repo_root, voc_workspace_name)
     clip_pretrain_path = clip_model or paths["clip_pretrain_path"]
 
     # Verify that DecoyMNIST data preparation has already been run.
     train_txt = os.path.join(paths["imageset_dir"], "train.txt")
+    val_txt = os.path.join(paths["imageset_dir"], "val.txt")
     if not os.path.isdir(paths["jpegimages_dir"]) or not os.listdir(paths["jpegimages_dir"]):
         raise FileNotFoundError(
             f"JPEGImages directory is missing or empty: {paths['jpegimages_dir']}\n"
             "Run your DecoyMNIST data preparation first."
         )
-    if not os.path.isfile(train_txt):
+    if not os.path.isfile(train_txt) or not os.path.isfile(val_txt):
         raise FileNotFoundError(
-            f"ImageSets/Main/train.txt not found: {train_txt}\n"
+            f"ImageSets/Main/train.txt or val.txt not found under: {paths['imageset_dir']}\n"
             "Run your DecoyMNIST data preparation first."
         )
 
     config = _write_runtime_config(
         paths["config"],
-        paths["config_dir"],
+        paths["mask_data_root"],
         paths["mask_data_root"],
         clip_pretrain_path,
         dino_model=dino_model,
@@ -202,6 +205,14 @@ if __name__ == "__main__":
         help="Foreground class name for DecoyMNIST (default: digit).",
     )
     parser.add_argument(
+        "--voc-workspace-name",
+        default="VOC2012_decoymnist",
+        help=(
+            "Name of VOC workspace under code/WeCLIPPlus/VOCdevkit/. "
+            "Use a distinct value per runner to avoid dataset overwrite."
+        ),
+    )
+    parser.add_argument(
         "--results-dir",
         default="results",
         help="Output directory for prediction_cmap (default: results).",
@@ -250,6 +261,7 @@ if __name__ == "__main__":
     main(
         args.repo_root,
         args.class_name,
+        args.voc_workspace_name,
         args.results_dir,
         args.clip_backend,
         args.clip_model,

@@ -20,10 +20,11 @@ SPLIT_IMAGES_DIR="/home/ryreu/guided_cnn/Food101/data/food-101-redmeat/split_ima
 CONDA_ENV="learntolook"
 CLASS_NAME="meat"
 RESULTS_DIR="results_redmeat_openclip_laion_dinovit"
+VOC_WORKSPACE_NAME="${VOC_WORKSPACE_NAME:-VOC2012_redmeat}"
 
 # OpenCLIP LAION settings (override via env if needed).
 CLIP_BACKEND="${CLIP_BACKEND:-openclip}"
-CLIP_MODEL_NAME="${CLIP_MODEL_NAME:-}"                 # Optional, e.g. ViT-B-16
+CLIP_MODEL_NAME="${CLIP_MODEL_NAME:-ViT-B-16}"
 CLIP_PRETRAINED="${CLIP_PRETRAINED:-laion2b_s34b_b88k}"
 
 # ViT DINO settings.
@@ -53,18 +54,26 @@ python -c "import open_clip" 2>/dev/null || {
   pip install -q open_clip_torch
 }
 
-rm -f "${WECLIP_ROOT}/configs/voc_attn_reg_runtime.yaml"
+VOC_ROOT="${WECLIP_ROOT}/VOCdevkit/${VOC_WORKSPACE_NAME}"
+TRAIN_TXT="${VOC_ROOT}/ImageSets/Main/train.txt"
+VAL_TXT="${VOC_ROOT}/ImageSets/Main/val.txt"
+SETUP_FLAG="--no-setup-data"
+if [[ ! -f "${TRAIN_TXT}" || ! -f "${VAL_TXT}" ]]; then
+  SETUP_FLAG="--setup-data"
+  echo "Workspace missing train/val lists, enabling setup: ${VOC_ROOT}"
+fi
 
 ARGS=(--repo-root "${REPO_ROOT}"
       --split-images-dir "${SPLIT_IMAGES_DIR}"
       --class-name "${CLASS_NAME}"
+      --voc-workspace-name "${VOC_WORKSPACE_NAME}"
       --results-dir "${RESULTS_DIR}"
       --clip-backend "${CLIP_BACKEND}"
       --clip-pretrained "${CLIP_PRETRAINED}"
       --dino-model "${DINO_MODEL}"
       --dino-fts-dim "${DINO_FTS_DIM}"
       --dino-decoder-layers "${DINO_DECODER_LAYERS}"
-      --no-setup-data)
+      "${SETUP_FLAG}")
 
 if [[ -n "${CLIP_MODEL_NAME}" ]]; then
   export CLIP_MODEL_NAME

@@ -2,8 +2,8 @@
 """
 prepare_colored_mnist.py
 
-Copies ColorMNIST PNG images from their source directory into the
-VOCdevkit/VOC2012/JPEGImages/ layout that WeCLIP+ expects, converting
+Copies ColorMNIST PNG images from their source directory into a
+VOCdevkit/<workspace>/JPEGImages/ layout that WeCLIP+ expects, converting
 them to JPEG along the way.  Also writes the ImageSets/Main/ text files.
 
 The source directory is NEVER modified.
@@ -30,9 +30,10 @@ def _default_repo_root():
     return os.path.abspath(os.path.join(script_dir, "..", ".."))
 
 
-def _voc_paths(repo_root):
+def _voc_paths(repo_root, voc_workspace_name):
     weclip_root = os.path.join(repo_root, "code", "WeCLIPPlus")
-    voc_root = os.path.join(weclip_root, "VOCdevkit", "VOC2012")
+    workspace = voc_workspace_name or "VOC2012"
+    voc_root = os.path.join(weclip_root, "VOCdevkit", workspace)
     return {
         "voc_root": voc_root,
         "jpeg_dir": os.path.join(voc_root, "JPEGImages"),
@@ -56,8 +57,8 @@ def _iter_images(root):
                 yield os.path.join(dirpath, fname)
 
 
-def prepare(src_dir, repo_root, class_name):
-    paths = _voc_paths(repo_root)
+def prepare(src_dir, repo_root, class_name, voc_workspace_name):
+    paths = _voc_paths(repo_root, voc_workspace_name)
     jpeg_dir = paths["jpeg_dir"]
     set_dir = paths["set_dir"]
     os.makedirs(jpeg_dir, exist_ok=True)
@@ -129,9 +130,17 @@ if __name__ == "__main__":
         default="digit",
         help="Foreground class name (default: digit).",
     )
+    parser.add_argument(
+        "--voc-workspace-name",
+        default="VOC2012_decoymnist",
+        help=(
+            "Name of VOC workspace under code/WeCLIPPlus/VOCdevkit/. "
+            "Use a dedicated workspace to avoid overwrite with other datasets."
+        ),
+    )
     args = parser.parse_args()
 
     if not os.path.isdir(args.src):
         raise FileNotFoundError(f"Source directory not found: {args.src}")
 
-    prepare(args.src, args.repo_root, args.class_name)
+    prepare(args.src, args.repo_root, args.class_name, args.voc_workspace_name)

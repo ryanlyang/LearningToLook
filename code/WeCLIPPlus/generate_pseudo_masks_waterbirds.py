@@ -4,11 +4,12 @@ import re
 import shutil
 
 
-def _resolve_paths(repo_root):
+def _resolve_paths(repo_root, voc_workspace_name):
     repo_root = os.path.abspath(repo_root)
     weclip_root = os.path.join(repo_root, "code", "WeCLIPPlus")
-    # Keep the legacy VOC-style layout for compatibility with WeCLIP internals.
-    mask_data_root = os.path.join(weclip_root, "VOCdevkit", "VOC2012")
+    workspace = voc_workspace_name or "VOC2012"
+    # Keep a VOC-style layout for compatibility with WeCLIP internals.
+    mask_data_root = os.path.join(weclip_root, "VOCdevkit", workspace)
     return {
         "weclip_root": weclip_root,
         "config": os.path.join(weclip_root, "configs", "voc_attn_reg.yaml"),
@@ -167,6 +168,7 @@ def main(
     src_img_dir,
     setup_data,
     class_name,
+    voc_workspace_name,
     results_dir,
     clip_backend,
     clip_model,
@@ -189,11 +191,11 @@ def main(
     from scripts import dist_clip_voc
     import test_msc_flip_voc
 
-    paths = _resolve_paths(repo_root)
+    paths = _resolve_paths(repo_root, voc_workspace_name)
     clip_pretrain_path = clip_model or paths["clip_pretrain_path"]
     config = _write_runtime_config(
         paths["config"],
-        paths["config_dir"],
+        paths["mask_data_root"],
         paths["mask_data_root"],
         clip_pretrain_path,
         dino_model=dino_model,
@@ -259,6 +261,14 @@ if __name__ == "__main__":
         help="Single foreground class name for Waterbirds (default: bird).",
     )
     parser.add_argument(
+        "--voc-workspace-name",
+        default="VOC2012_waterbirds",
+        help=(
+            "Name of VOC workspace under code/WeCLIPPlus/VOCdevkit/. "
+            "Use a distinct value per runner to avoid dataset overwrite."
+        ),
+    )
+    parser.add_argument(
         "--setup-data",
         dest="setup_data",
         action="store_true",
@@ -322,6 +332,7 @@ if __name__ == "__main__":
         args.src_img_dir,
         args.setup_data,
         args.class_name,
+        args.voc_workspace_name,
         args.results_dir,
         args.clip_backend,
         args.clip_model,
