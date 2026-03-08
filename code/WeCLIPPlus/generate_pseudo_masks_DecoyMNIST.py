@@ -11,14 +11,15 @@ def _default_repo_root():
 def _resolve_paths(repo_root):
     repo_root = os.path.abspath(repo_root)
     weclip_root = os.path.join(repo_root, "code", "WeCLIPPlus")
-    voc_root = os.path.join(weclip_root, "VOCdevkit", "VOC2012")
+    # Keep the legacy VOC-style layout for compatibility with WeCLIP internals.
+    mask_data_root = os.path.join(weclip_root, "VOCdevkit", "VOC2012")
     return {
         "weclip_root": weclip_root,
         "config": os.path.join(weclip_root, "configs", "voc_attn_reg.yaml"),
         "config_dir": os.path.join(weclip_root, "configs"),
-        "voc_root": voc_root,
-        "set_dir": os.path.join(voc_root, "ImageSets", "Main"),
-        "dest_dir": os.path.join(voc_root, "JPEGImages"),
+        "mask_data_root": mask_data_root,
+        "imageset_dir": os.path.join(mask_data_root, "ImageSets", "Main"),
+        "jpegimages_dir": os.path.join(mask_data_root, "JPEGImages"),
         "clip_pretrain_path": os.path.join(weclip_root, "pretrained", "ViT-B-16.pt"),
     }
 
@@ -26,20 +27,20 @@ def _resolve_paths(repo_root):
 def _write_runtime_config(
     base_config,
     output_dir,
-    voc_root,
+    mask_data_root,
     clip_pretrain_path,
     dino_model=None,
     dino_fts_dim=None,
     dino_decoder_layers=None,
 ):
     os.makedirs(output_dir, exist_ok=True)
-    name_list_dir = os.path.join(voc_root, "ImageSets", "Main")
+    name_list_dir = os.path.join(mask_data_root, "ImageSets", "Main")
 
     try:
         from omegaconf import OmegaConf
 
         cfg = OmegaConf.load(base_config)
-        cfg.dataset.root_dir = voc_root
+        cfg.dataset.root_dir = mask_data_root
         cfg.dataset.name_list_dir = name_list_dir
         cfg.clip_init.clip_pretrain_path = clip_pretrain_path
         if dino_model:
@@ -59,7 +60,7 @@ def _write_runtime_config(
 
         content = re.sub(
             r"(root_dir:\s*')([^']*)(')",
-            rf"\1{voc_root}\3",
+            rf"\1{mask_data_root}\3",
             content,
         )
         content = re.sub(
@@ -111,6 +112,7 @@ def main(
 ):
     if class_name:
         os.environ["CLIP_TEXT_VERSION"] = class_name
+    os.environ["CLIP_TEXT_DATASET"] = "decoymnist"
     if clip_backend:
         os.environ["CLIP_BACKEND"] = clip_backend
     if clip_model:
@@ -124,23 +126,23 @@ def main(
     paths = _resolve_paths(repo_root)
     clip_pretrain_path = clip_model or paths["clip_pretrain_path"]
 
-    # Verify that prepare_colored_mnist.py has already been run.
-    train_txt = os.path.join(paths["set_dir"], "train.txt")
-    if not os.path.isdir(paths["dest_dir"]) or not os.listdir(paths["dest_dir"]):
+    # Verify that DecoyMNIST data preparation has already been run.
+    train_txt = os.path.join(paths["imageset_dir"], "train.txt")
+    if not os.path.isdir(paths["jpegimages_dir"]) or not os.listdir(paths["jpegimages_dir"]):
         raise FileNotFoundError(
-            f"JPEGImages directory is missing or empty: {paths['dest_dir']}\n"
-            "Run prepare_colored_mnist.py first."
+            f"JPEGImages directory is missing or empty: {paths['jpegimages_dir']}\n"
+            "Run your DecoyMNIST data preparation first."
         )
     if not os.path.isfile(train_txt):
         raise FileNotFoundError(
             f"ImageSets/Main/train.txt not found: {train_txt}\n"
-            "Run prepare_colored_mnist.py first."
+            "Run your DecoyMNIST data preparation first."
         )
 
     config = _write_runtime_config(
         paths["config"],
         paths["config_dir"],
-        paths["voc_root"],
+        paths["mask_data_root"],
         clip_pretrain_path,
         dino_model=dino_model,
         dino_fts_dim=dino_fts_dim,
@@ -187,7 +189,7 @@ def main(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Generate pseudo masks for DecoyMNIST. "
-        "Run prepare_colored_mnist.py first to populate JPEGImages/ and ImageSets/."
+        "Run DecoyMNIST data preparation first to populate JPEGImages/ and ImageSets/."
     )
     parser.add_argument(
         "--repo-root",

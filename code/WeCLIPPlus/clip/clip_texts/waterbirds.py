@@ -1,0 +1,47 @@
+"""CLIP text definitions for Waterbirds."""
+
+BACKGROUND_CATEGORY = [
+    "pond", "marsh", "wetland", "swamp", "bay", "harbor", "port", "dock", "pier", "wharf", "jetty", "breakwater",
+    "shore", "shoreline", "coast", "coastline", "sandbar", "mud", "mudflat", "tidal flat", "tidepool", "estuary",
+    "delta", "inlet", "cove", "lagoon", "channel", "canal", "creek", "brook", "waterfall", "rapids",
+    "boat", "canoe", "kayak", "raft", "sailboat", "motorboat", "yacht", "ship", "barge", "ferry",
+    "buoy", "lifeguard tower", "lighthouse", "seawall", "boat ramp", "marina", "boardwalk", "promenade",
+    "ripples", "foam", "spray", "mist", "reflection", "wet sand", "driftwood", "seashell", "pebbles", "gravel",
+    "meadow", "prairie", "savanna", "pasture", "farmland", "orchard", "vineyard", "grove", "thicket", "underbrush",
+    "trail", "path", "footpath", "dirt path", "hiking trail", "canyon", "ravine", "gorge", "plateau", "ridge",
+    "dune", "sand", "muddy ground", "clay", "silt", "stones", "cobblestones", "outcrop", "scree", "talus",
+    "lava", "volcanic rock", "basalt", "granite", "cave", "sinkhole", "glacier", "iceberg",
+    "puddle", "mud puddle", "snowbank", "slush",
+    "reeds", "cattails", "tall grass", "weeds", "shrubs", "hedge", "moss", "lichen", "algae", "seaweed",
+    "lilypad", "water plants", "flowers", "wildflowers", "fern", "palm", "palm tree", "pine", "evergreen",
+    "log", "stump", "bark", "roots", "fallen tree", "brush", "mulch",
+    "dock posts", "rope", "net", "fishing gear", "cooler", "bucket", "crate", "barrel", "drum", "trash can",
+    "plastic bottle", "litter", "debris", "drain", "storm drain", "culvert", "ditch", "irrigation",
+    "bridge railing", "guardrail", "concrete", "asphalt", "pavement", "sidewalk", "curb", "parking lot",
+    "crosswalk", "traffic light", "streetlight", "utility pole", "power lines", "telephone lines",
+    "billboard", "graffiti", "construction", "scaffolding", "floodlight", "fountain",
+    "bench", "picnic table", "gazebo", "playground", "slide", "swing set",
+    "tent", "campground", "campfire", "fire pit", "grill", "smoke",
+    "barn", "shed", "cabin", "hut", "warehouse", "factory", "industrial site", "dockyard",
+    "apartment", "condo", "skyscraper", "downtown", "suburb", "neighborhood", "courtyard",
+    "balcony", "porch", "stairs", "doorway", "window", "brick", "stone wall", "wooden wall", "metal fence",
+    "chain-link fence", "gate", "railing", "roof", "chimney",
+    "sunset", "sunrise", "twilight", "dusk", "dawn", "shade", "shadow", "sun glare",
+    "fog", "haze", "smog", "rain", "drizzle", "storm", "thunderstorm", "lightning",
+    "wind", "overcast", "blue sky", "night", "moonlight", "streetlights",
+    "car", "truck", "pickup", "van", "bus", "train", "freight car", "tractor", "bulldozer", "excavator",
+    "bicycle", "motorcycle", "scooter", "boat trailer", "parking meter",
+    "cone", "barrier", "signpost", "mailbox", "table", "chair", "umbrella", "towel", "blanket",
+    "backpack", "bag", "basket", "bottle", "cup",
+    "dog", "cat", "horse", "cow", "goat", "sheep", "pig", "deer", "elk", "moose",
+    "bear", "fox", "coyote", "wolf", "raccoon", "skunk", "rabbit", "hare", "squirrel",
+    "chipmunk", "mouse", "rat", "beaver", "otter", "seal", "sea lion", "dolphin", "whale",
+    "turtle", "lizard", "snake", "frog", "toad", "fish", "crab", "lobster", "shrimp", "clam",
+    "snail", "slug", "butterfly", "moth", "bee", "wasp", "ant", "beetle", "dragonfly", "mosquito",
+    "zoo enclosure", "aquarium tank", "glass", "tile", "concrete floor", "wood floor", "carpet",
+    "cage", "wire mesh", "enclosure fence", "handrail", "poster", "banner", "painting",
+]
+
+_all_class_names = ["bird"]
+_all_new_class_names = ["bird"]
+

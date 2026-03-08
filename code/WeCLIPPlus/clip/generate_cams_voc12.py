@@ -235,8 +235,8 @@ if __name__ == "__main__":
         os.makedirs(args.cam_out_dir)
 
     model, _ = clip.load(args.model, device=device)
-    bg_text_features = zeroshot_classifier(BACKGROUND_CATEGORY, ['a clean origami {}.'], model)#['a rendering of a weird {}.'], model)
-    fg_text_features = zeroshot_classifier(new_class_names, ['a clean origami {}.'], model)#['a rendering of a weird {}.'], model)
+    bg_text_features = zeroshot_classifier(BACKGROUND_CATEGORY, ['a clean origami of {}.'], model)#['a rendering of a weird {}.'], model)
+    fg_text_features = zeroshot_classifier(new_class_names, ['a clean origami of {}.'], model)#['a rendering of a weird {}.'], model)
 
     target_layers = [model.visual.transformer.resblocks[-1].ln_1]
     cam = GradCAM(model=model, target_layers=target_layers, reshape_transform=reshape_transform)
@@ -247,4 +247,3 @@ if __name__ == "__main__":
     else:
         multiprocessing.spawn(perform, nprocs=args.num_workers,
                               args=(dataset_list, args, model, bg_text_features, fg_text_features, cam))
-

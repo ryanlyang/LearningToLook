@@ -55,6 +55,6 @@ ARGS=(--repo-root "${REPO_ROOT}"
       --dino-decoder-layers "${DINO_DECODER_LAYERS}"
       --no-setup-data)
 
-echo "Running generate_pseudo_masks_redMeat.py ${ARGS[*]}"
+echo "Running generate_pseudo_masks_redmeat.py ${ARGS[*]}"
 
-srun --unbuffered python -u generate_pseudo_masks_redMeat.py "${ARGS[@]}"
+srun --unbuffered python -u generate_pseudo_masks_redmeat.py "${ARGS[@]}"

@@ -125,9 +125,9 @@ class WeCLIP_Plus(nn.Module):
         
         self.decoder = DecoderTransformer(width=self.embedding_dim, layers=decoder_layers, heads=8, output_dim=self.num_classes)
 
-        self.bg_text_features = zeroshot_classifier(BACKGROUND_CATEGORY_COCO, ['a clean origami {}.'],
+        self.bg_text_features = zeroshot_classifier(BACKGROUND_CATEGORY_COCO, ['a clean origami of {}.'],
                                                self.encoder)  # ['a rendering of a weird {}.'], model)
-        self.fg_text_features = zeroshot_classifier(new_class_names_coco, ['a clean origami {}.'],
+        self.fg_text_features = zeroshot_classifier(new_class_names_coco, ['a clean origami of {}.'],
                                                self.encoder)  # ['a rendering of a weird {}.'], model) (20, 512)
 
         self.root_path = os.path.join(dataset_root_path, 'SegmentationClass')

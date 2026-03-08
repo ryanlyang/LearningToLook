@@ -17,14 +17,15 @@ def _default_repo_root():
 def _resolve_paths(repo_root):
     repo_root = os.path.abspath(repo_root)
     weclip_root = os.path.join(repo_root, "code", "WeCLIPPlus")
-    voc_root = os.path.join(weclip_root, "VOCdevkit", "VOC2012")
+    # Keep the legacy VOC-style layout for compatibility with WeCLIP internals.
+    mask_data_root = os.path.join(weclip_root, "VOCdevkit", "VOC2012")
     return {
         "weclip_root": weclip_root,
         "config": os.path.join(weclip_root, "configs", "voc_attn_reg.yaml"),
         "config_dir": os.path.join(weclip_root, "configs"),
-        "voc_root": voc_root,
-        "set_dir": os.path.join(voc_root, "ImageSets", "Main"),
-        "dest_dir": os.path.join(voc_root, "JPEGImages"),
+        "mask_data_root": mask_data_root,
+        "imageset_dir": os.path.join(mask_data_root, "ImageSets", "Main"),
+        "jpegimages_dir": os.path.join(mask_data_root, "JPEGImages"),
         "clip_pretrain_path": os.path.join(weclip_root, "pretrained", "ViT-B-16.pt"),
     }
 
@@ -32,20 +33,20 @@ def _resolve_paths(repo_root):
 def _write_runtime_config(
     base_config,
     output_dir,
-    voc_root,
+    mask_data_root,
     clip_pretrain_path,
     dino_model=None,
     dino_fts_dim=None,
     dino_decoder_layers=None,
 ):
     os.makedirs(output_dir, exist_ok=True)
-    name_list_dir = os.path.join(voc_root, "ImageSets", "Main")
+    name_list_dir = os.path.join(mask_data_root, "ImageSets", "Main")
 
     try:
         from omegaconf import OmegaConf
 
         cfg = OmegaConf.load(base_config)
-        cfg.dataset.root_dir = voc_root
+        cfg.dataset.root_dir = mask_data_root
         cfg.dataset.name_list_dir = name_list_dir
         cfg.clip_init.clip_pretrain_path = clip_pretrain_path
         if dino_model:
@@ -62,7 +63,7 @@ def _write_runtime_config(
         with open(base_config, "r") as f:
             content = f.read()
 
-        content = re.sub(r"(root_dir:\s*')([^']*)(')", rf"\1{voc_root}\3", content)
+        content = re.sub(r"(root_dir:\s*')([^']*)(')", rf"\1{mask_data_root}\3", content)
         content = re.sub(r"(name_list_dir:\s*')([^']*)(')", rf"\1{name_list_dir}\3", content)
         content = re.sub(r"(clip_pretrain_path:\s*')([^']*)(')", rf"\1{clip_pretrain_path}\3", content)
 
@@ -105,13 +106,15 @@ def _build_id(class_name: str, image_path: str) -> str:
     return f"{_sanitize_token(class_name)}_{_sanitize_token(stem)}"
 
 
-def _prepare_redmeat_dataset(split_images_dir: str, class_name: str, set_dir: str, dest_dir: str) -> Dict[str, int]:
+def _prepare_redmeat_dataset(
+    split_images_dir: str, class_name: str, imageset_dir: str, jpegimages_dir: str
+) -> Dict[str, int]:
     """
     Ingest split_images/{train,val}/<class>/*.jpg and write everything as one
     pooled dataset with IDs: <source_class>_<image_stem>.
     """
-    os.makedirs(set_dir, exist_ok=True)
-    os.makedirs(dest_dir, exist_ok=True)
+    os.makedirs(imageset_dir, exist_ok=True)
+    os.makedirs(jpegimages_dir, exist_ok=True)
 
     split_roots = [
         os.path.join(split_images_dir, "train"),
@@ -136,7 +139,7 @@ def _prepare_redmeat_dataset(split_images_dir: str, class_name: str, set_dir: st
                 suffix += 1
             seen_ids.add(unique_id)
 
-            dst_path = os.path.join(dest_dir, unique_id + ".jpg")
+            dst_path = os.path.join(jpegimages_dir, unique_id + ".jpg")
             if os.path.exists(dst_path):
                 skipped += 1
             else:
@@ -152,10 +155,10 @@ def _prepare_redmeat_dataset(split_images_dir: str, class_name: str, set_dir: st
 
     # Use all images for both train and val, so both dist_clip_voc and
     # test_msc_flip_voc process the full pooled set.
-    train_path = os.path.join(set_dir, "train.txt")
-    val_path = os.path.join(set_dir, "val.txt")
-    cls_train_path = os.path.join(set_dir, f"{class_name}_train.txt")
-    cls_val_path = os.path.join(set_dir, f"{class_name}_val.txt")
+    train_path = os.path.join(imageset_dir, "train.txt")
+    val_path = os.path.join(imageset_dir, "val.txt")
+    cls_train_path = os.path.join(imageset_dir, f"{class_name}_train.txt")
+    cls_val_path = os.path.join(imageset_dir, f"{class_name}_val.txt")
 
     with open(train_path, "w") as f:
         f.write("\n".join(basenames) + "\n")
@@ -188,6 +191,7 @@ def main(
 ):
     if class_name:
         os.environ["CLIP_TEXT_VERSION"] = class_name
+    os.environ["CLIP_TEXT_DATASET"] = "redmeat"
     if clip_backend:
         os.environ["CLIP_BACKEND"] = clip_backend
     if clip_model:
@@ -205,8 +209,8 @@ def main(
         stats = _prepare_redmeat_dataset(
             split_images_dir=split_images_dir,
             class_name=class_name,
-            set_dir=paths["set_dir"],
-            dest_dir=paths["dest_dir"],
+            imageset_dir=paths["imageset_dir"],
+            jpegimages_dir=paths["jpegimages_dir"],
         )
         print(
             "Prepared Red Meat dataset: "
@@ -215,8 +219,8 @@ def main(
             f"{stats['skipped_existing']} skipped existing."
         )
     else:
-        train_txt = os.path.join(paths["set_dir"], "train.txt")
-        val_txt = os.path.join(paths["set_dir"], "val.txt")
+        train_txt = os.path.join(paths["imageset_dir"], "train.txt")
+        val_txt = os.path.join(paths["imageset_dir"], "val.txt")
         if not os.path.isfile(train_txt) or not os.path.isfile(val_txt):
             raise FileNotFoundError(
                 "ImageSets/Main train.txt/val.txt missing. "
@@ -226,7 +230,7 @@ def main(
     config = _write_runtime_config(
         paths["config"],
         paths["config_dir"],
-        paths["voc_root"],
+        paths["mask_data_root"],
         clip_pretrain_path,
         dino_model=dino_model,
         dino_fts_dim=dino_fts_dim,
@@ -286,7 +290,7 @@ if __name__ == "__main__":
         "--setup-data",
         dest="setup_data",
         action="store_true",
-        help="Prepare VOC-style JPEGImages/ImageSets from split_images/train+val.",
+        help="Prepare pseudo-mask workspace JPEGImages/ImageSets from split_images/train+val.",
     )
     parser.add_argument(
         "--no-setup-data",

@@ -75,6 +75,6 @@ if [[ -n "${CLIP_PRETRAINED}" ]]; then
   ARGS+=(--clip-pretrained "${CLIP_PRETRAINED}")
 fi
 
-echo "Running generate_pseudo_masks_redMeat.py ${ARGS[*]}"
+echo "Running generate_pseudo_masks_redmeat.py ${ARGS[*]}"
 
-srun --unbuffered python -u generate_pseudo_masks_redMeat.py "${ARGS[@]}"
+srun --unbuffered python -u generate_pseudo_masks_redmeat.py "${ARGS[@]}"
