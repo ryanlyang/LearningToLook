@@ -13,15 +13,7 @@
 set -Eeuo pipefail
 mkdir -p /home/ryreu/guided_cnn/logsWaterSwitch
 
-REPO_BASE="/home/ryreu/guided_cnn/waterbirds/RightForTheRightRegions"
-if [[ -d "${REPO_BASE}/LearningToLook/code/WeCLIPPlus" ]]; then
-  REPO_ROOT="${REPO_BASE}/LearningToLook"
-elif [[ -d "${REPO_BASE}/code/WeCLIPPlus" ]]; then
-  REPO_ROOT="${REPO_BASE}"
-else
-  echo "Could not find code/WeCLIPPlus under ${REPO_BASE}."
-  exit 1
-fi
+REPO_ROOT="/home/ryreu/guided_cnn/Food101/LearningToLook"
 WECLIP_ROOT="${REPO_ROOT}/code/WeCLIPPlus"
 SRC_IMG_DIR="/home/ryreu/guided_cnn/waterbirds/waterbird_1.0_forest2water2"
 
